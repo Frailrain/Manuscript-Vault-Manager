@@ -35,11 +35,107 @@ export interface ScrivenerProject {
   warnings: string[]
 }
 
+export type LLMProviderKind = 'anthropic' | 'openai-compatible'
+
+export interface LLMProviderConfig {
+  kind: LLMProviderKind
+  apiKey: string
+  model: string
+  /** Required for openai-compatible; optional for anthropic (SDK default used). */
+  baseURL?: string
+  /** Max output tokens per call. Defaults to 4096. */
+  maxTokens?: number
+}
+
+export interface ExtractedCharacter {
+  name: string
+  aliases: string[]
+  description: string
+  role: string
+  relationships: Array<{ name: string; relationship: string }>
+  firstAppearanceChapter: number
+  appearances: number[]
+}
+
+export interface ExtractedLocation {
+  name: string
+  description: string
+  significance: string
+  firstAppearanceChapter: number
+  appearances: number[]
+}
+
+export interface TimelineEvent {
+  chapterOrder: number
+  summary: string
+  sequence: number
+}
+
+export type ContinuitySeverity = 'low' | 'medium' | 'high'
+
+export interface ContinuityIssue {
+  severity: ContinuitySeverity
+  description: string
+  chapters: number[]
+  suggestion: string
+}
+
+export type ExtractionPass =
+  | 'characters'
+  | 'locations'
+  | 'timeline'
+  | 'continuity'
+
+export interface ChapterExtraction {
+  chapterOrder: number
+  chapterUuid: string
+  chapterTitle: string
+  summary: string
+  charactersAppearing: string[]
+  locationsAppearing: string[]
+  passErrors?: Partial<Record<ExtractionPass, string>>
+}
+
+export interface TokenUsage {
+  inputTokens: number
+  outputTokens: number
+  estimatedCostUSD: number
+}
+
+export interface ExtractionResult {
+  projectName: string
+  generatedAt: string
+  chapters: ChapterExtraction[]
+  characters: ExtractedCharacter[]
+  locations: ExtractedLocation[]
+  timeline: TimelineEvent[]
+  continuityIssues: ContinuityIssue[]
+  tokenUsage: TokenUsage
+  warnings: string[]
+}
+
+export interface ExtractionProgress {
+  phase: 'preparing' | 'extracting' | 'merging' | 'done'
+  currentChapter: number
+  totalChapters: number
+  currentPass: ExtractionPass | null
+  tokensUsedSoFar: number
+  estimatedCostSoFar: number
+}
+
+export interface ExtractionRunPayload {
+  project: ScrivenerProject
+  provider: LLMProviderConfig
+}
+
 declare global {
   interface Window {
     mvm: {
       scrivener: { parse: (path: string) => Promise<ScrivenerProject> }
-      extraction: { run: (payload: unknown) => Promise<unknown> }
+      extraction: {
+        run: (payload: ExtractionRunPayload) => Promise<ExtractionResult>
+        onProgress: (cb: (progress: ExtractionProgress) => void) => () => void
+      }
       vault: { generate: (payload: unknown) => Promise<unknown> }
       sync: { check: (payload: unknown) => Promise<unknown> }
       settings: {

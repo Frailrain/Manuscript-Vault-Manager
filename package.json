@@ -19,6 +19,7 @@
     "test:ui": "vitest --ui"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.90.0",
     "fast-xml-parser": "^5.6.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
@@ -37,6 +38,7 @@
     "electron-vite": "^2.3.0",
     "postcss": "^8.4.47",
     "tailwindcss": "^3.4.13",
+    "tsx": "^4.21.0",
     "typescript": "^5.6.2",
     "vite": "^5.4.8",
     "vitest": "^4.1.4"
