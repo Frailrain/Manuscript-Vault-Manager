@@ -129,7 +129,6 @@ export async function runExtractionWithProvider(
   try {
     for (let i = 0; i < project.chapters.length; i++) {
       const chapter = project.chapters[i]!
-      const ctx = buildContext(project, chapters, characters, locations, chapter)
 
       const emitProgress = (pass: ExtractionPass | null): void => {
         onProgress({
@@ -144,128 +143,25 @@ export async function runExtractionWithProvider(
 
       emitProgress(null)
 
-      const chapterExtraction: ChapterExtraction = {
-        chapterOrder: chapter.order,
-        chapterUuid: chapter.uuid,
-        chapterTitle: chapter.title,
-        summary: '',
-        charactersAppearing: [],
-        locationsAppearing: []
-      }
-      const characterDeltas: ExtractedCharacterDelta[] = []
-      const locationDeltas: ExtractedLocationDelta[] = []
-      const timelineDeltas: TimelineEventDelta[] = []
-      const continuityDeltas: ContinuityIssueDelta[] = []
-      const passErrors: Partial<Record<ExtractionPass, string>> = {}
+      const outcome = await extractSingleChapter(
+        project,
+        chapter,
+        provider,
+        { chapters, characters, locations },
+        tokenUsage,
+        { emitPass: emitProgress }
+      )
 
-      const fits = chapterFitsInOneCall(chapter)
+      warnings.push(...outcome.chapterWarnings)
+      if (outcome.skipped) continue
 
-      if (fits) {
-        await runPass(
-          charactersPass,
-          chapter,
-          ctx,
-          provider,
-          tokenUsage,
-          passErrors,
-          emitProgress,
-          (data) => {
-            characterDeltas.push(...data.characters)
-            mergeCharacters(characters, data.characters, chapter.order)
-          }
-        )
-        await runPass(
-          locationsPass,
-          chapter,
-          ctx,
-          provider,
-          tokenUsage,
-          passErrors,
-          emitProgress,
-          (data) => {
-            locationDeltas.push(...data.locations)
-            mergeLocations(locations, data.locations, chapter.order)
-          }
-        )
-        await runPass(
-          timelinePass,
-          chapter,
-          ctx,
-          provider,
-          tokenUsage,
-          passErrors,
-          emitProgress,
-          (data) => {
-            timelineDeltas.push(...data.events)
-            mergeTimeline(timeline, data.events, chapter.order)
-            chapterExtraction.summary = data.summary
-            chapterExtraction.charactersAppearing = data.charactersAppearing
-            chapterExtraction.locationsAppearing = data.locationsAppearing
-          }
-        )
-        await runPass(
-          continuityPass,
-          chapter,
-          ctx,
-          provider,
-          tokenUsage,
-          passErrors,
-          emitProgress,
-          (data) => {
-            continuityDeltas.push(...data.issues)
-            mergeContinuity(continuityIssues, data.issues, chapter.order)
-          }
-        )
-      } else {
-        warnings.push(
-          `Chapter ${chapter.order} "${chapter.title}" exceeds one-call size budget; running per-scene fallback.`
-        )
-        await runChapterInPieces(
-          chapter,
-          ctx,
-          provider,
-          tokenUsage,
-          passErrors,
-          emitProgress,
-          chapterExtraction,
-          characters,
-          locations,
-          timeline,
-          continuityIssues,
-          characterDeltas,
-          locationDeltas,
-          timelineDeltas,
-          continuityDeltas
-        )
-      }
-
-      if (Object.keys(passErrors).length > 0) {
-        chapterExtraction.passErrors = passErrors
-        for (const [pass, msg] of Object.entries(passErrors)) {
-          warnings.push(`Chapter ${chapter.order} pass '${pass}' failed: ${msg}`)
-        }
-      }
-
-      const allFailed =
-        (['characters', 'locations', 'timeline', 'continuity'] as ExtractionPass[]).every(
-          (p) => passErrors[p] !== undefined
-        )
-      if (allFailed) {
-        warnings.push(
-          `Chapter ${chapter.order} "${chapter.title}" failed every pass; skipping.`
-        )
-        continue
-      }
-
-      appendChapterExtraction(chapters, chapterExtraction)
-      chapterContributions.push({
-        chapterOrder: chapter.order,
-        chapterUuid: chapter.uuid,
-        characterDeltas: dedupeByNormalizedName(characterDeltas),
-        locationDeltas: dedupeByNormalizedName(locationDeltas),
-        timelineEvents: timelineDeltas,
-        continuityIssues: continuityDeltas
-      })
+      chapterContributions.push(outcome.contribution)
+      mergeTimeline(timeline, outcome.contribution.timelineEvents, chapter.order)
+      mergeContinuity(
+        continuityIssues,
+        outcome.contribution.continuityIssues,
+        chapter.order
+      )
       tokenUsage.estimatedCostUSD = estimateCost(
         provider.model,
         tokenUsage.inputTokens,
@@ -317,6 +213,176 @@ export async function runExtractionWithProvider(
   }
 }
 
+export interface ExtractSingleChapterPriorContext {
+  chapters: ChapterExtraction[]
+  characters: ExtractedCharacter[]
+  locations: ExtractedLocation[]
+}
+
+export interface ExtractSingleChapterOptions {
+  emitPass?: (pass: ExtractionPass | null) => void
+}
+
+export type ExtractSingleChapterOutcome =
+  | {
+      skipped: false
+      chapterExtraction: ChapterExtraction
+      contribution: ChapterContribution
+      chapterWarnings: string[]
+    }
+  | {
+      skipped: true
+      chapterWarnings: string[]
+    }
+
+/**
+ * Run all four passes for a single chapter.
+ *
+ * On success: mutates priorContext.{chapters,characters,locations} so subsequent
+ * chapters see the updated running state, and returns the new
+ * ChapterExtraction + ChapterContribution. On all-passes-failed: returns
+ * `skipped: true` and leaves priorContext unchanged (no pass ran to completion).
+ */
+export async function extractSingleChapter(
+  project: ScrivenerProject,
+  chapter: ScrivenerChapter,
+  provider: LLMProvider,
+  priorContext: ExtractSingleChapterPriorContext,
+  tokenUsage: TokenUsage,
+  options: ExtractSingleChapterOptions = {}
+): Promise<ExtractSingleChapterOutcome> {
+  const emitPass = options.emitPass ?? noopPass
+  const chapterWarnings: string[] = []
+  const ctx = buildContext(
+    project,
+    priorContext.chapters,
+    priorContext.characters,
+    priorContext.locations,
+    chapter
+  )
+
+  const chapterExtraction: ChapterExtraction = {
+    chapterOrder: chapter.order,
+    chapterUuid: chapter.uuid,
+    chapterTitle: chapter.title,
+    summary: '',
+    charactersAppearing: [],
+    locationsAppearing: []
+  }
+  const characterDeltas: ExtractedCharacterDelta[] = []
+  const locationDeltas: ExtractedLocationDelta[] = []
+  const timelineDeltas: TimelineEventDelta[] = []
+  const continuityDeltas: ContinuityIssueDelta[] = []
+  const passErrors: Partial<Record<ExtractionPass, string>> = {}
+
+  const fits = chapterFitsInOneCall(chapter)
+
+  if (fits) {
+    await runPass(
+      charactersPass,
+      chapter,
+      ctx,
+      provider,
+      tokenUsage,
+      passErrors,
+      emitPass,
+      (data) => {
+        characterDeltas.push(...data.characters)
+        mergeCharacters(priorContext.characters, data.characters, chapter.order)
+      }
+    )
+    await runPass(
+      locationsPass,
+      chapter,
+      ctx,
+      provider,
+      tokenUsage,
+      passErrors,
+      emitPass,
+      (data) => {
+        locationDeltas.push(...data.locations)
+        mergeLocations(priorContext.locations, data.locations, chapter.order)
+      }
+    )
+    await runPass(
+      timelinePass,
+      chapter,
+      ctx,
+      provider,
+      tokenUsage,
+      passErrors,
+      emitPass,
+      (data) => {
+        timelineDeltas.push(...data.events)
+        chapterExtraction.summary = data.summary
+        chapterExtraction.charactersAppearing = data.charactersAppearing
+        chapterExtraction.locationsAppearing = data.locationsAppearing
+      }
+    )
+    await runPass(
+      continuityPass,
+      chapter,
+      ctx,
+      provider,
+      tokenUsage,
+      passErrors,
+      emitPass,
+      (data) => {
+        continuityDeltas.push(...data.issues)
+      }
+    )
+  } else {
+    chapterWarnings.push(
+      `Chapter ${chapter.order} "${chapter.title}" exceeds one-call size budget; running per-scene fallback.`
+    )
+    await runChapterInPieces(
+      chapter,
+      ctx,
+      provider,
+      tokenUsage,
+      passErrors,
+      emitPass,
+      chapterExtraction,
+      priorContext.characters,
+      priorContext.locations,
+      characterDeltas,
+      locationDeltas,
+      timelineDeltas,
+      continuityDeltas
+    )
+  }
+
+  if (Object.keys(passErrors).length > 0) {
+    chapterExtraction.passErrors = passErrors
+    for (const [pass, msg] of Object.entries(passErrors)) {
+      chapterWarnings.push(`Chapter ${chapter.order} pass '${pass}' failed: ${msg}`)
+    }
+  }
+
+  const allFailed = (
+    ['characters', 'locations', 'timeline', 'continuity'] as ExtractionPass[]
+  ).every((p) => passErrors[p] !== undefined)
+  if (allFailed) {
+    chapterWarnings.push(
+      `Chapter ${chapter.order} "${chapter.title}" failed every pass; skipping.`
+    )
+    return { skipped: true, chapterWarnings }
+  }
+
+  appendChapterExtraction(priorContext.chapters, chapterExtraction)
+
+  const contribution: ChapterContribution = {
+    chapterOrder: chapter.order,
+    chapterUuid: chapter.uuid,
+    characterDeltas: dedupeByNormalizedName(characterDeltas),
+    locationDeltas: dedupeByNormalizedName(locationDeltas),
+    timelineEvents: timelineDeltas,
+    continuityIssues: continuityDeltas
+  }
+
+  return { skipped: false, chapterExtraction, contribution, chapterWarnings }
+}
+
 async function runPass<T>(
   pass: PassRunner<T>,
   chapter: ScrivenerChapter,
@@ -360,8 +426,6 @@ async function runChapterInPieces(
   chapterExtraction: ChapterExtraction,
   characters: ExtractedCharacter[],
   locations: ExtractedLocation[],
-  timeline: TimelineEvent[],
-  continuityIssues: ContinuityIssue[],
   characterDeltas: ExtractedCharacterDelta[],
   locationDeltas: ExtractedLocationDelta[],
   timelineDeltas: TimelineEventDelta[],
@@ -417,11 +481,6 @@ async function runChapterInPieces(
       (data) => {
         for (const ev of data.events) {
           const seq = sceneSequence++
-          timeline.push({
-            chapterOrder: chapter.order,
-            summary: ev.summary,
-            sequence: seq
-          })
           timelineDeltas.push({ summary: ev.summary, sequence: seq })
         }
         sceneSummaries.push(data.summary)
@@ -439,7 +498,6 @@ async function runChapterInPieces(
       emitProgress,
       (data) => {
         continuityDeltas.push(...data.issues)
-        mergeContinuity(continuityIssues, data.issues, chapter.order)
       }
     )
   }
@@ -516,3 +574,4 @@ function normaliseContinuityChapters(
 }
 
 function noop(): void {}
+function noopPass(_: ExtractionPass | null): void {}
