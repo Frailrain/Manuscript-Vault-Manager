@@ -80,6 +80,43 @@ export interface ContinuityIssue {
   suggestion: string
 }
 
+export interface ExtractedCharacterDelta {
+  name: string
+  aliases: string[]
+  description: string
+  role: string
+  relationships: Array<{ name: string; relationship: string }>
+  isNew: boolean
+}
+
+export interface ExtractedLocationDelta {
+  name: string
+  description: string
+  significance: string
+  isNew: boolean
+}
+
+export interface TimelineEventDelta {
+  summary: string
+  sequence: number
+}
+
+export interface ContinuityIssueDelta {
+  severity: ContinuitySeverity
+  description: string
+  suggestion: string
+  relatedCharacters: string[]
+}
+
+export interface ChapterContribution {
+  chapterOrder: number
+  chapterUuid: string
+  characterDeltas: ExtractedCharacterDelta[]
+  locationDeltas: ExtractedLocationDelta[]
+  timelineEvents: TimelineEventDelta[]
+  continuityIssues: ContinuityIssueDelta[]
+}
+
 export type ExtractionPass =
   | 'characters'
   | 'locations'
@@ -112,6 +149,7 @@ export interface ExtractionResult {
   continuityIssues: ContinuityIssue[]
   tokenUsage: TokenUsage
   warnings: string[]
+  chapterContributions: ChapterContribution[]
 }
 
 export interface ExtractionProgress {

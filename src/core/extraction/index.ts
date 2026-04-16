@@ -13,11 +13,15 @@ export {
   estimateChapterTokens
 } from './chunking'
 export type {
+  ChapterContribution,
   ChapterExtraction,
   ContinuityIssue,
+  ContinuityIssueDelta,
   ContinuitySeverity,
   ExtractedCharacter,
+  ExtractedCharacterDelta,
   ExtractedLocation,
+  ExtractedLocationDelta,
   ExtractionPass,
   ExtractionProgress,
   ExtractionResult,
@@ -25,5 +29,6 @@ export type {
   LLMProviderConfig,
   LLMProviderKind,
   TimelineEvent,
+  TimelineEventDelta,
   TokenUsage
 } from '../../shared/types'

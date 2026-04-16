@@ -1,4 +1,7 @@
-import type { ScrivenerChapter } from '../../../shared/types'
+import type {
+  ExtractedLocationDelta,
+  ScrivenerChapter
+} from '../../../shared/types'
 import type { JSONSchema } from '../providers'
 import {
   concatenateScenes,
@@ -12,12 +15,7 @@ import {
   type PassRunner
 } from './common'
 
-export interface ExtractedLocationDelta {
-  name: string
-  description: string
-  significance: string
-  isNew: boolean
-}
+export type { ExtractedLocationDelta }
 
 export interface LocationsPassResult {
   locations: ExtractedLocationDelta[]

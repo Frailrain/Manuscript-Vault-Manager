@@ -287,7 +287,8 @@ describe('generateVault', () => {
       timeline: [],
       continuityIssues: [],
       tokenUsage: { inputTokens: 0, outputTokens: 0, estimatedCostUSD: 0 },
-      warnings: []
+      warnings: [],
+      chapterContributions: []
     }
     const emptyProject: ScrivenerProject = {
       ...project,

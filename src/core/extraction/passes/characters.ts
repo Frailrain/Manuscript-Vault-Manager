@@ -1,4 +1,7 @@
-import type { ScrivenerChapter } from '../../../shared/types'
+import type {
+  ExtractedCharacterDelta,
+  ScrivenerChapter
+} from '../../../shared/types'
 import type { JSONSchema } from '../providers'
 import {
   concatenateScenes,
@@ -13,14 +16,7 @@ import {
   type PassRunner
 } from './common'
 
-export interface ExtractedCharacterDelta {
-  name: string
-  aliases: string[]
-  description: string
-  role: string
-  relationships: Array<{ name: string; relationship: string }>
-  isNew: boolean
-}
+export type { ExtractedCharacterDelta }
 
 export interface CharactersPassResult {
   characters: ExtractedCharacterDelta[]

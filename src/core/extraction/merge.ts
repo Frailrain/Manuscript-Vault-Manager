@@ -109,6 +109,20 @@ export function appendChapterExtraction(
   running.push(record)
 }
 
+export function dedupeByNormalizedName<T extends { name: string }>(
+  items: T[]
+): T[] {
+  const seen = new Set<string>()
+  const out: T[] = []
+  for (const item of items) {
+    const key = normalize(item.name)
+    if (seen.has(key)) continue
+    seen.add(key)
+    out.push(item)
+  }
+  return out
+}
+
 function findMatchingCharacter(
   running: ExtractedCharacter[],
   delta: ExtractedCharacterDelta

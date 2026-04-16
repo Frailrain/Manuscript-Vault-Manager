@@ -154,6 +154,7 @@ export function buildMiniExtraction(): ExtractionResult {
       outputTokens: 4_180,
       estimatedCostUSD: 0.145
     },
-    warnings: ['Fixture warning for tests']
+    warnings: ['Fixture warning for tests'],
+    chapterContributions: []
   }
 }

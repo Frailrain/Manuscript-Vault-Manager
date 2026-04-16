@@ -1,9 +1,13 @@
 import type {
+  ChapterContribution,
   ChapterExtraction,
   ContinuityIssue,
+  ContinuityIssueDelta,
   ContinuitySeverity,
   ExtractedCharacter,
+  ExtractedCharacterDelta,
   ExtractedLocation,
+  ExtractedLocationDelta,
   ExtractionPass,
   ExtractionProgress,
   ExtractionResult,
@@ -11,6 +15,7 @@ import type {
   ScrivenerChapter,
   ScrivenerProject,
   TimelineEvent,
+  TimelineEventDelta,
   TokenUsage
 } from '../../shared/types'
 import { chapterFitsInOneCall } from './chunking'
@@ -18,6 +23,7 @@ import { estimateCost, hasKnownPricing } from './costs'
 import { ExtractionError } from './errors'
 import {
   appendChapterExtraction,
+  dedupeByNormalizedName,
   mergeCharacters,
   mergeContinuity,
   mergeLocations,
@@ -74,6 +80,7 @@ export async function runExtractionWithProvider(
   const locations: ExtractedLocation[] = []
   const timeline: TimelineEvent[] = []
   const continuityIssues: ContinuityIssue[] = []
+  const chapterContributions: ChapterContribution[] = []
   const tokenUsage: TokenUsage = {
     inputTokens: 0,
     outputTokens: 0,
@@ -114,7 +121,8 @@ export async function runExtractionWithProvider(
       timeline,
       continuityIssues,
       tokenUsage,
-      warnings
+      warnings,
+      chapterContributions
     }
   }
 
@@ -144,6 +152,10 @@ export async function runExtractionWithProvider(
         charactersAppearing: [],
         locationsAppearing: []
       }
+      const characterDeltas: ExtractedCharacterDelta[] = []
+      const locationDeltas: ExtractedLocationDelta[] = []
+      const timelineDeltas: TimelineEventDelta[] = []
+      const continuityDeltas: ContinuityIssueDelta[] = []
       const passErrors: Partial<Record<ExtractionPass, string>> = {}
 
       const fits = chapterFitsInOneCall(chapter)
@@ -158,6 +170,7 @@ export async function runExtractionWithProvider(
           passErrors,
           emitProgress,
           (data) => {
+            characterDeltas.push(...data.characters)
             mergeCharacters(characters, data.characters, chapter.order)
           }
         )
@@ -170,6 +183,7 @@ export async function runExtractionWithProvider(
           passErrors,
           emitProgress,
           (data) => {
+            locationDeltas.push(...data.locations)
             mergeLocations(locations, data.locations, chapter.order)
           }
         )
@@ -182,6 +196,7 @@ export async function runExtractionWithProvider(
           passErrors,
           emitProgress,
           (data) => {
+            timelineDeltas.push(...data.events)
             mergeTimeline(timeline, data.events, chapter.order)
             chapterExtraction.summary = data.summary
             chapterExtraction.charactersAppearing = data.charactersAppearing
@@ -197,6 +212,7 @@ export async function runExtractionWithProvider(
           passErrors,
           emitProgress,
           (data) => {
+            continuityDeltas.push(...data.issues)
             mergeContinuity(continuityIssues, data.issues, chapter.order)
           }
         )
@@ -215,7 +231,11 @@ export async function runExtractionWithProvider(
           characters,
           locations,
           timeline,
-          continuityIssues
+          continuityIssues,
+          characterDeltas,
+          locationDeltas,
+          timelineDeltas,
+          continuityDeltas
         )
       }
 
@@ -238,6 +258,14 @@ export async function runExtractionWithProvider(
       }
 
       appendChapterExtraction(chapters, chapterExtraction)
+      chapterContributions.push({
+        chapterOrder: chapter.order,
+        chapterUuid: chapter.uuid,
+        characterDeltas: dedupeByNormalizedName(characterDeltas),
+        locationDeltas: dedupeByNormalizedName(locationDeltas),
+        timelineEvents: timelineDeltas,
+        continuityIssues: continuityDeltas
+      })
       tokenUsage.estimatedCostUSD = estimateCost(
         provider.model,
         tokenUsage.inputTokens,
@@ -284,7 +312,8 @@ export async function runExtractionWithProvider(
     timeline: sortedTimeline,
     continuityIssues: normaliseContinuityChapters(continuityIssues),
     tokenUsage,
-    warnings
+    warnings,
+    chapterContributions
   }
 }
 
@@ -332,7 +361,11 @@ async function runChapterInPieces(
   characters: ExtractedCharacter[],
   locations: ExtractedLocation[],
   timeline: TimelineEvent[],
-  continuityIssues: ContinuityIssue[]
+  continuityIssues: ContinuityIssue[],
+  characterDeltas: ExtractedCharacterDelta[],
+  locationDeltas: ExtractedLocationDelta[],
+  timelineDeltas: TimelineEventDelta[],
+  continuityDeltas: ContinuityIssueDelta[]
 ): Promise<void> {
   const sceneSummaries: string[] = []
   const charSet = new Set<string>()
@@ -356,6 +389,7 @@ async function runChapterInPieces(
       passErrors,
       emitProgress,
       (data) => {
+        characterDeltas.push(...data.characters)
         mergeCharacters(characters, data.characters, chapter.order)
       }
     )
@@ -368,6 +402,7 @@ async function runChapterInPieces(
       passErrors,
       emitProgress,
       (data) => {
+        locationDeltas.push(...data.locations)
         mergeLocations(locations, data.locations, chapter.order)
       }
     )
@@ -381,11 +416,13 @@ async function runChapterInPieces(
       emitProgress,
       (data) => {
         for (const ev of data.events) {
+          const seq = sceneSequence++
           timeline.push({
             chapterOrder: chapter.order,
             summary: ev.summary,
-            sequence: sceneSequence++
+            sequence: seq
           })
+          timelineDeltas.push({ summary: ev.summary, sequence: seq })
         }
         sceneSummaries.push(data.summary)
         for (const name of data.charactersAppearing) charSet.add(name)
@@ -401,6 +438,7 @@ async function runChapterInPieces(
       passErrors,
       emitProgress,
       (data) => {
+        continuityDeltas.push(...data.issues)
         mergeContinuity(continuityIssues, data.issues, chapter.order)
       }
     )
