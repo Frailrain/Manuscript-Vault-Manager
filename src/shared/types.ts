@@ -128,6 +128,43 @@ export interface ExtractionRunPayload {
   provider: LLMProviderConfig
 }
 
+export interface VaultGeneratorOptions {
+  novelTitle: string
+  /** Wipe Chapters/, Characters/, Locations/ before writing. Default false. */
+  clean?: boolean
+  onProgress?: (progress: VaultProgress) => void
+}
+
+export type VaultPhase =
+  | 'chapters'
+  | 'characters'
+  | 'locations'
+  | 'timeline'
+  | 'continuity'
+  | 'dashboard'
+
+export interface VaultProgress {
+  phase: VaultPhase
+  current: number
+  total: number
+  currentFile: string
+}
+
+export interface VaultGenerationResult {
+  filesWritten: number
+  /** Files where existing Writer's Notes were merged in. */
+  filesPreserved: number
+  vaultPath: string
+  durationMs: number
+}
+
+export interface VaultGenerateRunPayload {
+  extraction: ExtractionResult
+  scrivenerProject: ScrivenerProject
+  vaultPath: string
+  options: VaultGeneratorOptions
+}
+
 declare global {
   interface Window {
     mvm: {
@@ -136,7 +173,10 @@ declare global {
         run: (payload: ExtractionRunPayload) => Promise<ExtractionResult>
         onProgress: (cb: (progress: ExtractionProgress) => void) => () => void
       }
-      vault: { generate: (payload: unknown) => Promise<unknown> }
+      vault: {
+        generate: (payload: VaultGenerateRunPayload) => Promise<VaultGenerationResult>
+        onProgress: (cb: (progress: VaultProgress) => void) => () => void
+      }
       sync: { check: (payload: unknown) => Promise<unknown> }
       settings: {
         get: (key: string) => Promise<unknown>

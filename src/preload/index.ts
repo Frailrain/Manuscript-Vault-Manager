@@ -3,7 +3,10 @@ import { contextBridge, ipcRenderer, type IpcRendererEvent } from 'electron'
 import type {
   ExtractionProgress,
   ExtractionRunPayload,
-  ExtractionResult
+  ExtractionResult,
+  VaultGenerateRunPayload,
+  VaultGenerationResult,
+  VaultProgress
 } from '../shared/types'
 
 const api = {
@@ -23,7 +26,16 @@ const api = {
     }
   },
   vault: {
-    generate: (payload: unknown) => ipcRenderer.invoke('vault:generate', payload)
+    generate: (payload: VaultGenerateRunPayload): Promise<VaultGenerationResult> =>
+      ipcRenderer.invoke('vault:generate', payload) as Promise<VaultGenerationResult>,
+    onProgress: (cb: (progress: VaultProgress) => void) => {
+      const listener = (_event: IpcRendererEvent, progress: VaultProgress) =>
+        cb(progress)
+      ipcRenderer.on('vault:progress', listener)
+      return () => {
+        ipcRenderer.off('vault:progress', listener)
+      }
+    }
   },
   sync: {
     check: (payload: unknown) => ipcRenderer.invoke('sync:check', payload)

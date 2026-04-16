@@ -7,6 +7,7 @@ release/
 .DS_Store
 .vscode/
 .idea/
+.claude/
 .env
 .env.local
 .env.*.local

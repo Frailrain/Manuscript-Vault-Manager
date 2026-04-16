@@ -2,13 +2,15 @@ import { ipcMain } from 'electron'
 
 import { runExtraction } from '../../core/extraction'
 import { parseScrivenerProject } from '../../core/scrivener'
+import { generateVault } from '../../core/vault'
 import type {
   ExtractionProgress,
-  ExtractionRunPayload
+  ExtractionRunPayload,
+  VaultGenerateRunPayload,
+  VaultProgress
 } from '../../shared/types'
 
 const STUB_CHANNELS = [
-  'vault:generate',
   'sync:check',
   'settings:get',
   'settings:set'
@@ -36,6 +38,25 @@ export function registerIpcHandlers(): void {
       onProgress: (progress: ExtractionProgress) => {
         // Stream plain-data progress to the renderer; no object refs leak.
         event.sender.send('extraction:progress', progress)
+      }
+    })
+  })
+
+  ipcMain.handle('vault:generate', async (event, payload: unknown) => {
+    if (!payload || typeof payload !== 'object') {
+      throw new Error('[vault:generate] payload must be an object')
+    }
+    const { extraction, scrivenerProject, vaultPath, options } =
+      payload as Partial<VaultGenerateRunPayload>
+    if (!extraction || !scrivenerProject || !vaultPath || !options) {
+      throw new Error(
+        '[vault:generate] payload must include { extraction, scrivenerProject, vaultPath, options }'
+      )
+    }
+    return generateVault(extraction, scrivenerProject, vaultPath, {
+      ...options,
+      onProgress: (progress: VaultProgress) => {
+        event.sender.send('vault:progress', progress)
       }
     })
   })
