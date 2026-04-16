@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ScrivenerProject Version="2.0">
+  <Binder>
+    <BinderItem UUID="AAAAAAAA-AAAA-AAAA-AAAA-AAAAAAAAAAAA" Type="DraftFolder">
+      <Title>Manuscript</Title>
+      <Children>
+        <BinderItem UUID="11111111-1111-1111-1111-111111111111" Type="Folder">
+          <Title>Part One</Title>
+          <Children>
+            <BinderItem UUID="22222222-2222-2222-2222-222222222222" Type="Folder">
+              <Title>Chapter 1</Title>
+              <MetaData>
+                <IncludeInCompile>Yes</IncludeInCompile>
+                <Label>Draft</Label>
+                <Status>First Draft</Status>
+              </MetaData>
+              <Children>
+                <BinderItem UUID="33333333-3333-3333-3333-333333333311" Type="Text">
+                  <Title>Scene 1</Title>
+                  <MetaData>
+                    <IncludeInCompile>Yes</IncludeInCompile>
+                  </MetaData>
+                </BinderItem>
+                <BinderItem UUID="33333333-3333-3333-3333-333333333322" Type="Text">
+                  <Title>Scene 2 (excluded)</Title>
+                  <MetaData>
+                    <IncludeInCompile>No</IncludeInCompile>
+                  </MetaData>
+                </BinderItem>
+                <BinderItem UUID="33333333-3333-3333-3333-333333333333" Type="Text">
+                  <Title>Scene 3</Title>
+                  <MetaData>
+                    <IncludeInCompile>Yes</IncludeInCompile>
+                  </MetaData>
+                </BinderItem>
+              </Children>
+            </BinderItem>
+            <BinderItem UUID="44444444-4444-4444-4444-444444444444" Type="Folder">
+              <Title>Chapter 2</Title>
+              <MetaData>
+                <IncludeInCompile>Yes</IncludeInCompile>
+              </MetaData>
+              <Children>
+                <BinderItem UUID="55555555-5555-5555-5555-555555555555" Type="Text">
+                  <Title>Opening</Title>
+                  <MetaData>
+                    <IncludeInCompile>Yes</IncludeInCompile>
+                  </MetaData>
+                </BinderItem>
+              </Children>
+            </BinderItem>
+          </Children>
+        </BinderItem>
+      </Children>
+    </BinderItem>
+    <BinderItem UUID="RRRRRRRR-RRRR-RRRR-RRRR-RRRRRRRRRRRR" Type="ResearchFolder">
+      <Title>Research</Title>
+      <Children>
+        <BinderItem UUID="DEADBEEF-DEAD-BEEF-DEAD-BEEFDEADBEEF" Type="Text">
+          <Title>World-building notes</Title>
+        </BinderItem>
+      </Children>
+    </BinderItem>
+    <BinderItem UUID="TTTTTTTT-TTTT-TTTT-TTTT-TTTTTTTTTTTT" Type="TrashFolder">
+      <Title>Trash</Title>
+    </BinderItem>
+  </Binder>
+</ScrivenerProject>
