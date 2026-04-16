@@ -8,6 +8,7 @@ import type {
 } from '../../shared/types'
 import { writeFileAtomic } from './atomic'
 import { buildFrontmatter } from './frontmatter'
+import { stripHeadingMarkers } from './sanitize'
 
 const CONTINUITY_FILENAME = 'Flagged Issues.md'
 
@@ -99,8 +100,14 @@ function buildContinuityFile(extraction: ExtractionResult): string {
       .sort((a, b) => (a.chapters[0] ?? 0) - (b.chapters[0] ?? 0))
     for (const issue of sorted) {
       sections.push(`### ${continuityIssueHeading(issue)}`, '')
-      sections.push(`**Description:** ${issue.description}`, '')
-      sections.push(`**Suggestion:** ${issue.suggestion}`, '')
+      sections.push(
+        `**Description:** ${stripHeadingMarkers(issue.description)}`,
+        ''
+      )
+      sections.push(
+        `**Suggestion:** ${stripHeadingMarkers(issue.suggestion)}`,
+        ''
+      )
     }
   }
 

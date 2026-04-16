@@ -3,6 +3,7 @@ import { join } from 'node:path'
 import type { ExtractionResult, VaultProgress } from '../../shared/types'
 import { writeFileAtomic } from './atomic'
 import { buildFrontmatter } from './frontmatter'
+import { stripHeadingMarkers } from './sanitize'
 
 const TIMELINE_FILENAME = 'Master Timeline.md'
 
@@ -69,7 +70,7 @@ function buildTimelineFile(extraction: ExtractionResult): string {
       .slice()
       .sort((a, b) => a.sequence - b.sequence)
     for (let i = 0; i < events.length; i++) {
-      sections.push(`${i + 1}. ${events[i]!.summary}`)
+      sections.push(`${i + 1}. ${stripHeadingMarkers(events[i]!.summary)}`)
     }
     sections.push('')
   }

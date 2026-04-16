@@ -6,7 +6,7 @@ import type {
   VaultProgress
 } from '../../shared/types'
 import { buildFrontmatter } from './frontmatter'
-import { managedBlock } from './managed'
+import { stripHeadingMarkers } from './sanitize'
 import { writeManagedFile } from './writeManaged'
 import { chapterWikiLink, type NameResolver } from './wikilinks'
 
@@ -68,13 +68,13 @@ function buildCharacterFile(
 
   const frontmatter = buildFrontmatter(fmFields)
 
-  const descriptionBlock = managedBlock(
+  const descriptionBody = stripHeadingMarkers(
     character.description.trim().length > 0
       ? character.description
       : '*(not specified)*'
   )
 
-  const roleBlock = managedBlock(
+  const roleBody = stripHeadingMarkers(
     character.role.trim().length > 0 ? character.role : '*(not specified)*'
   )
 
@@ -84,7 +84,6 @@ function buildCharacterFile(
           .map((rel) => renderRelationshipLine(rel, ctx, character.name))
           .join('\n')
       : '*(none recorded)*'
-  const relationshipsBlock = managedBlock(relationshipsBody)
 
   const appearancesBody =
     character.appearances.length > 0
@@ -92,7 +91,6 @@ function buildCharacterFile(
           .map((order) => `- ${chapterWikiLink(order, ctx.chapterFilenames)}`)
           .join('\n')
       : '*(none)*'
-  const appearancesBlock = managedBlock(appearancesBody)
 
   const lines: string[] = [
     frontmatter.trimEnd(),
@@ -101,19 +99,19 @@ function buildCharacterFile(
     '',
     '## Description',
     '',
-    descriptionBlock,
+    descriptionBody,
     '',
     '## Role',
     '',
-    roleBlock,
+    roleBody,
     '',
     '## Relationships',
     '',
-    relationshipsBlock,
+    relationshipsBody,
     '',
     '## Appearances',
     '',
-    appearancesBlock,
+    appearancesBody,
     '',
     "## Writer's Notes",
     ''
@@ -127,13 +125,14 @@ function renderRelationshipLine(
   ctx: CharacterWriteContext,
   sourceName: string
 ): string {
+  const relationship = stripHeadingMarkers(rel.relationship)
   const canonical = ctx.characterResolver.resolve(rel.name)
   if (canonical) {
     const filename = ctx.characterFilenames.get(canonical) ?? canonical
-    return `- **[[${filename}]]** — ${rel.relationship}`
+    return `- **[[${filename}]]** — ${relationship}`
   }
   ctx.warnings.push(
     `Unresolved character reference: '${rel.name}' in ${sourceName} relationships`
   )
-  return `- **${rel.name}** — ${rel.relationship}`
+  return `- **${rel.name}** — ${relationship}`
 }

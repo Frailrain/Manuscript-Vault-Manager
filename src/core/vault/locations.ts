@@ -6,7 +6,7 @@ import type {
   VaultProgress
 } from '../../shared/types'
 import { buildFrontmatter } from './frontmatter'
-import { managedBlock } from './managed'
+import { stripHeadingMarkers } from './sanitize'
 import { writeManagedFile } from './writeManaged'
 import { chapterWikiLink } from './wikilinks'
 
@@ -63,13 +63,13 @@ function buildLocationFile(
     appearances: [...location.appearances]
   })
 
-  const descriptionBlock = managedBlock(
+  const descriptionBody = stripHeadingMarkers(
     location.description.trim().length > 0
       ? location.description
       : '*(not specified)*'
   )
 
-  const significanceBlock = managedBlock(
+  const significanceBody = stripHeadingMarkers(
     location.significance.trim().length > 0
       ? location.significance
       : '*(not specified)*'
@@ -81,7 +81,6 @@ function buildLocationFile(
           .map((order) => `- ${chapterWikiLink(order, ctx.chapterFilenames)}`)
           .join('\n')
       : '*(none)*'
-  const appearancesBlock = managedBlock(appearancesBody)
 
   const lines: string[] = [
     frontmatter.trimEnd(),
@@ -90,15 +89,15 @@ function buildLocationFile(
     '',
     '## Description',
     '',
-    descriptionBlock,
+    descriptionBody,
     '',
     '## Significance',
     '',
-    significanceBlock,
+    significanceBody,
     '',
     '## Appearances',
     '',
-    appearancesBlock,
+    appearancesBody,
     '',
     "## Writer's Notes",
     ''

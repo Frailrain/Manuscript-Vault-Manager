@@ -11,6 +11,7 @@ import type {
 import { writeFileAtomic } from './atomic'
 import { continuityIssueHeading, countBySeverity } from './continuity'
 import { buildFrontmatter } from './frontmatter'
+import { stripHeadingMarkers } from './sanitize'
 
 const DASHBOARD_FILENAME = 'Dashboard.md'
 const SEVERITY_RANK: Record<ContinuitySeverity, number> = {
@@ -161,7 +162,7 @@ function sortByNameInsensitive<T extends ExtractedCharacter | ExtractedLocation>
 }
 
 function summaryPreview(summary: string): string {
-  const trimmed = summary.trim()
+  const trimmed = stripHeadingMarkers(summary).trim()
   if (trimmed.length === 0) return ''
   const dotIdx = trimmed.indexOf('.')
   const firstSentence =

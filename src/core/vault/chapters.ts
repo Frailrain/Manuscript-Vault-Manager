@@ -7,7 +7,7 @@ import type {
   VaultProgress
 } from '../../shared/types'
 import { buildFrontmatter } from './frontmatter'
-import { managedBlock } from './managed'
+import { stripHeadingMarkers } from './sanitize'
 import { writeManagedFile } from './writeManaged'
 import { renderEntityLink, type NameResolver } from './wikilinks'
 
@@ -78,16 +78,19 @@ function buildChapterFile(
     parent: scrivChapter?.parentTitle ?? null
   })
 
-  const summaryBlock = managedBlock(chapter.summary || '*(not specified)*')
+  const summaryBody = stripHeadingMarkers(
+    chapter.summary || '*(not specified)*'
+  )
 
   const events = extraction.timeline
     .filter((e) => e.chapterOrder === chapter.chapterOrder)
     .sort((a, b) => a.sequence - b.sequence)
   const eventsBody =
     events.length > 0
-      ? events.map((e, idx) => `${idx + 1}. ${e.summary}`).join('\n')
+      ? events
+          .map((e, idx) => `${idx + 1}. ${stripHeadingMarkers(e.summary)}`)
+          .join('\n')
       : '*(no events recorded)*'
-  const eventsBlock = managedBlock(eventsBody)
 
   const charactersBody =
     chapter.charactersAppearing.length > 0
@@ -104,7 +107,6 @@ function buildChapterFile(
           )
           .join('\n')
       : '*(none)*'
-  const charactersBlock = managedBlock(charactersBody)
 
   const locationsBody =
     chapter.locationsAppearing.length > 0
@@ -121,7 +123,6 @@ function buildChapterFile(
           )
           .join('\n')
       : '*(none)*'
-  const locationsBlock = managedBlock(locationsBody)
 
   const lines: string[] = [
     frontmatter.trimEnd(),
@@ -130,19 +131,19 @@ function buildChapterFile(
     '',
     '## Summary',
     '',
-    summaryBlock,
+    summaryBody,
     '',
     '## Events',
     '',
-    eventsBlock,
+    eventsBody,
     '',
     '## Characters Appearing',
     '',
-    charactersBlock,
+    charactersBody,
     '',
     '## Locations',
     '',
-    locationsBlock,
+    locationsBody,
     '',
     "## Writer's Notes",
     ''

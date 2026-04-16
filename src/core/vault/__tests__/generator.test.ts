@@ -71,7 +71,11 @@ describe('generateVault', () => {
     expect(content).toContain('[[The Archivist]]')
     expect(content).toContain('[[The Silver Tower]]')
     expect(content).toContain("## Writer's Notes")
-    expect(content).toContain('<!-- MVM:MANAGED:start -->')
+    expect(content).not.toContain('MVM:MANAGED')
+    // Summary content appears directly under its heading with a blank line.
+    expect(content).toMatch(
+      /## Summary\n\nElara reaches the Silver Tower and confronts the Archivist\./
+    )
   })
 
   it('omits parent/synopsis when they are null', async () => {
@@ -117,7 +121,7 @@ describe('generateVault', () => {
     expect(vorn).not.toMatch(/^aliases:/m)
   })
 
-  it('renders chapter-tagged descriptions verbatim in the managed block', async () => {
+  it('renders chapter-tagged descriptions verbatim under the heading', async () => {
     await generateVault(extraction, project, vaultPath, {
       novelTitle: 'Mini Test Novel'
     })
