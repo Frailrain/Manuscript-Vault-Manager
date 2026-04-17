@@ -5,6 +5,9 @@ export interface DescriptionBlock {
 
 const BLOCK_REGEX = /^\(Ch (\d+)\):\s*([\s\S]+?)(?=\n\n\(Ch \d+\):|$)/gm
 
+const PRONOUN_PREFIXES =
+  /^(it|its|he|his|him|she|her|hers|they|their|them)\b/i
+
 /**
  * Parse a chapter-tagged description into its constituent blocks.
  * Returns [] if the description has no (Ch N): prefixes.
@@ -42,15 +45,24 @@ export function synthesizeDescription(
     }
     return t
   })
-  const joined =
-    parts[0] +
-    parts
-      .slice(1)
-      .map((p) => connective + lowerFirst(p))
-      .join('')
+  const joined = joinWithConnective(parts, connective)
 
   if (joined.length > 400) return blocks[0]!.text
   return joined
+}
+
+function joinWithConnective(parts: string[], connective: string): string {
+  if (parts.length === 0) return ''
+  let result = parts[0]!
+  for (let i = 1; i < parts.length; i++) {
+    const next = parts[i]!
+    if (PRONOUN_PREFIXES.test(next)) {
+      result = result.replace(/[,;]$/, '') + '. ' + next
+    } else {
+      result += connective + lowerFirst(next)
+    }
+  }
+  return result
 }
 
 function lowerFirst(s: string): string {

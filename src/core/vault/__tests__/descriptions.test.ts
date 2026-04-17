@@ -90,4 +90,52 @@ describe('synthesizeDescription', () => {
     expect(synth).not.toContain('(Ch 1):')
     expect(synth).not.toContain('(Ch 2):')
   })
+
+  it('uses a sentence break when the next block starts with "It" (no "It it" artifact)', () => {
+    const out = synthesizeDescription(
+      '(Ch 1): A shadowy presence haunts the archive.\n\n(Ch 2): It speaks only to the Archivist.',
+      '. It '
+    )
+    expect(out).toBe(
+      'A shadowy presence haunts the archive. It speaks only to the Archivist.'
+    )
+    expect(out).not.toContain('It it')
+  })
+
+  it('uses a sentence break when the next block starts with "Its" (no "It its" artifact)', () => {
+    const out = synthesizeDescription(
+      '(Ch 3): A tall spire glinting in the afternoon sun.\n\n(Ch 7): Its upper floors hold forbidden books.',
+      '. It '
+    )
+    expect(out).toBe(
+      'A tall spire glinting in the afternoon sun. Its upper floors hold forbidden books.'
+    )
+    expect(out).not.toContain('It its')
+  })
+
+  it('uses a sentence break for "He"-prefixed continuation blocks with the character connective', () => {
+    const out = synthesizeDescription(
+      '(Ch 1): A grizzled veteran of the Border Wars.\n\n(Ch 2): He carries a notched axe.'
+    )
+    expect(out).toBe(
+      'A grizzled veteran of the Border Wars. He carries a notched axe.'
+    )
+    expect(out).not.toContain('who he')
+  })
+
+  it('handles a three-block synthesis where only the middle block starts with a pronoun', () => {
+    const out = synthesizeDescription(
+      '(Ch 1): Tall scholar.\n\n(Ch 2): She carries a silver knife.\n\n(Ch 3): Wears a blue cloak.'
+    )
+    expect(out).toBe(
+      'Tall scholar. She carries a silver knife, who wears a blue cloak.'
+    )
+  })
+
+  it('keeps the normal connective when the continuation does not start with a pronoun', () => {
+    const out = synthesizeDescription(
+      '(Ch 1): Tall scholar.\n\n(Ch 2): Carries a silver knife.'
+    )
+    expect(out).toBe('Tall scholar, who carries a silver knife.')
+  })
 })

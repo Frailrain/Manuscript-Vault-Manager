@@ -144,7 +144,7 @@ describe('generateVault', () => {
     expect(elara).toContain(
       'Tall, grey-eyed scholar with a scar across her cheek, who carries a silver knife engraved with an unknown crest.'
     )
-    expect(elara).toContain('> [!note-] Per-chapter detail')
+    expect(elara).toContain('> [!note]- Per-chapter detail')
     expect(elara).toContain(
       '> **Chapter 1:** Tall, grey-eyed scholar with a scar across her cheek.'
     )
@@ -189,7 +189,7 @@ describe('generateVault', () => {
       'utf8'
     )
     expect(vorn).toContain('A grizzled veteran of the Border Wars.')
-    expect(vorn).not.toContain('> [!note-] Per-chapter detail')
+    expect(vorn).not.toContain('> [!note]- Per-chapter detail')
   })
 
   it('omits Role line in "At a Glance" when role is empty', async () => {
@@ -221,7 +221,7 @@ describe('generateVault', () => {
     expect(silverTower).toContain(
       '**Significance:** Home of the Archivist and the banned texts.'
     )
-    expect(silverTower).toContain('> [!note-] Per-chapter detail')
+    expect(silverTower).toContain('> [!note]- Per-chapter detail')
     expect(silverTower).toContain('> **Chapter 3:** A tall spire')
   })
 

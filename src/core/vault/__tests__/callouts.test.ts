@@ -17,14 +17,23 @@ describe('renderCallout', () => {
     expect(out).toBe('> [!abstract] At a Glance\n> Some body text.')
   })
 
-  it('appends "-" to the type when foldable is true', () => {
+  it('appends "-" after the closing bracket when foldable is true', () => {
     const out = renderCallout({
       type: 'note',
       title: 'Per-chapter detail',
       body: 'Chapter 1: stuff.',
       foldable: true
     })
-    expect(out).toBe('> [!note-] Per-chapter detail\n> Chapter 1: stuff.')
+    expect(out).toBe('> [!note]- Per-chapter detail\n> Chapter 1: stuff.')
+  })
+
+  it('appends "-" after the closing bracket when foldable and no title', () => {
+    const out = renderCallout({
+      type: 'note',
+      body: 'Body only.',
+      foldable: true
+    })
+    expect(out).toBe('> [!note]-\n> Body only.')
   })
 
   it('prefixes every non-empty body line with "> "', () => {

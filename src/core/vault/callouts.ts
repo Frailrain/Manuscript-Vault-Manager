@@ -24,10 +24,11 @@ export function renderCallout(opts: CalloutOptions): string {
     }
   }
 
-  const typeTag = opts.foldable ? `${opts.type}-` : opts.type
+  const base = `> [!${opts.type}]`
+  const suffix = opts.foldable ? '-' : ''
   const header = opts.title
-    ? `> [!${typeTag}] ${opts.title}`
-    : `> [!${typeTag}]`
+    ? `${base}${suffix} ${opts.title}`
+    : `${base}${suffix}`
   const body = lines
     .map((line) => (line.length === 0 ? '>' : `> ${line}`))
     .join('\n')
