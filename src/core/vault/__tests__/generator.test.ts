@@ -72,7 +72,6 @@ describe('generateVault', () => {
     expect(content).toContain('[[The Silver Tower]]')
     expect(content).toContain("## Writer's Notes")
     expect(content).not.toContain('MVM:MANAGED')
-    // Summary content appears directly under its heading with a blank line.
     expect(content).toMatch(
       /## Summary\n\nElara reaches the Silver Tower and confronts the Archivist\./
     )
@@ -121,7 +120,20 @@ describe('generateVault', () => {
     expect(vorn).not.toMatch(/^aliases:/m)
   })
 
-  it('renders chapter-tagged descriptions verbatim under the heading', async () => {
+  it('places an "At a Glance" abstract callout immediately after the H1 in character files', async () => {
+    await generateVault(extraction, project, vaultPath, {
+      novelTitle: 'Mini Test Novel'
+    })
+    const elara = await readFile(
+      join(vaultPath, 'Characters', 'Elara.md'),
+      'utf8'
+    )
+    expect(elara).toMatch(
+      /# Elara\n\n> \[!abstract\] At a Glance\n> \*\*Role:\*\* protagonist, first-year academy scholar\n> \*\*First seen:\*\* Chapter 1\n> \*\*Appears in:\*\* 3 chapters/
+    )
+  })
+
+  it('renders a synthesized description paragraph with a foldable per-chapter callout', async () => {
     await generateVault(extraction, project, vaultPath, {
       novelTitle: 'Mini Test Novel'
     })
@@ -130,11 +142,163 @@ describe('generateVault', () => {
       'utf8'
     )
     expect(elara).toContain(
-      '(Ch 1): Tall, grey-eyed scholar with a scar across her cheek.'
+      'Tall, grey-eyed scholar with a scar across her cheek, who carries a silver knife engraved with an unknown crest.'
+    )
+    expect(elara).toContain('> [!note-] Per-chapter detail')
+    expect(elara).toContain(
+      '> **Chapter 1:** Tall, grey-eyed scholar with a scar across her cheek.'
     )
     expect(elara).toContain(
-      '(Ch 3): Carries a silver knife engraved with an unknown crest.'
+      '> **Chapter 3:** Carries a silver knife engraved with an unknown crest.'
     )
+  })
+
+  it("omits the separate '## Role' heading from character files", async () => {
+    await generateVault(extraction, project, vaultPath, {
+      novelTitle: 'Mini Test Novel'
+    })
+    const elara = await readFile(
+      join(vaultPath, 'Characters', 'Elara.md'),
+      'utf8'
+    )
+    expect(elara).not.toMatch(/^## Role\s*$/m)
+  })
+
+  it('renders each relationship as its own "> [!info] [[Target]]" callout', async () => {
+    await generateVault(extraction, project, vaultPath, {
+      novelTitle: 'Mini Test Novel'
+    })
+    const elara = await readFile(
+      join(vaultPath, 'Characters', 'Elara.md'),
+      'utf8'
+    )
+    expect(elara).toContain(
+      '> [!info] [[Captain Vorn]]\n> mentor, trained her at the academy'
+    )
+    expect(elara).toContain(
+      '> [!info] [[The Archivist]]\n> adversary, withholds information'
+    )
+  })
+
+  it('omits per-chapter detail callout when description has no (Ch N): prefix', async () => {
+    await generateVault(extraction, project, vaultPath, {
+      novelTitle: 'Mini Test Novel'
+    })
+    const vorn = await readFile(
+      join(vaultPath, 'Characters', 'Captain Vorn.md'),
+      'utf8'
+    )
+    expect(vorn).toContain('A grizzled veteran of the Border Wars.')
+    expect(vorn).not.toContain('> [!note-] Per-chapter detail')
+  })
+
+  it('omits Role line in "At a Glance" when role is empty', async () => {
+    await generateVault(extraction, project, vaultPath, {
+      novelTitle: 'Mini Test Novel'
+    })
+    const archivist = await readFile(
+      join(vaultPath, 'Characters', 'The Archivist.md'),
+      'utf8'
+    )
+    expect(archivist).toContain('> [!abstract] At a Glance')
+    const glance = archivist.split('> [!abstract] At a Glance')[1]!
+    const glanceBlock = glance.split('\n\n')[0]!
+    expect(glanceBlock).not.toMatch(/\*\*Role:\*\*/)
+    expect(glanceBlock).toContain('**First seen:** Chapter 3')
+    expect(glanceBlock).toContain('**Appears in:** 1 chapter')
+  })
+
+  it('renders location "At a Glance" with Significance when present and synthesized description', async () => {
+    await generateVault(extraction, project, vaultPath, {
+      novelTitle: 'Mini Test Novel'
+    })
+    const silverTower = await readFile(
+      join(vaultPath, 'Locations', 'The Silver Tower.md'),
+      'utf8'
+    )
+    expect(silverTower).toContain('> [!abstract] At a Glance')
+    expect(silverTower).toContain('**First seen:** Chapter 3')
+    expect(silverTower).toContain(
+      '**Significance:** Home of the Archivist and the banned texts.'
+    )
+    expect(silverTower).toContain('> [!note-] Per-chapter detail')
+    expect(silverTower).toContain('> **Chapter 3:** A tall spire')
+  })
+
+  it('omits Significance line from location "At a Glance" when empty', async () => {
+    const withEmptySig: ExtractionResult = {
+      ...extraction,
+      locations: extraction.locations.map((loc) =>
+        loc.name === 'The Academy' ? { ...loc, significance: '' } : loc
+      )
+    }
+    await generateVault(withEmptySig, project, vaultPath, {
+      novelTitle: 'Mini Test Novel'
+    })
+    const academy = await readFile(
+      join(vaultPath, 'Locations', 'The Academy.md'),
+      'utf8'
+    )
+    expect(academy).toContain('> [!abstract] At a Glance')
+    const glance = academy.split('> [!abstract] At a Glance')[1]!
+    const glanceBlock = glance.split('\n\n')[0]!
+    expect(glanceBlock).not.toMatch(/\*\*Significance:\*\*/)
+  })
+
+  it('renders Chapter Card abstract callout when parent or synopsis exists', async () => {
+    await generateVault(extraction, project, vaultPath, {
+      novelTitle: 'Mini Test Novel'
+    })
+    const ch1 = await readFile(
+      join(vaultPath, 'Chapters', '01 - The Academy.md'),
+      'utf8'
+    )
+    expect(ch1).toContain('> [!abstract] Chapter Card')
+    expect(ch1).toContain('> **Part:** Part One')
+    expect(ch1).toContain('> **Scrivener synopsis:** Elara arrives.')
+  })
+
+  it('omits Chapter Card when neither parent nor synopsis is present', async () => {
+    await generateVault(extraction, project, vaultPath, {
+      novelTitle: 'Mini Test Novel'
+    })
+    const ch2 = await readFile(
+      join(vaultPath, 'Chapters', '02 - Redgate.md'),
+      'utf8'
+    )
+    expect(ch2).not.toContain('> [!abstract] Chapter Card')
+  })
+
+  it('renders chapter events inside a "> [!example] Events" callout', async () => {
+    await generateVault(extraction, project, vaultPath, {
+      novelTitle: 'Mini Test Novel'
+    })
+    const ch3 = await readFile(
+      join(vaultPath, 'Chapters', '03 - The Silver Tower.md'),
+      'utf8'
+    )
+    expect(ch3).toContain('> [!example] Events')
+    expect(ch3).toContain('> 1. Elara ascends the Silver Tower alone.')
+    expect(ch3).toContain('> 2. The Archivist blocks her path to the archive.')
+  })
+
+  it('renders chapter Characters and Locations as single-line info callouts with middle-dot separators', async () => {
+    await generateVault(extraction, project, vaultPath, {
+      novelTitle: 'Mini Test Novel'
+    })
+    const ch3 = await readFile(
+      join(vaultPath, 'Chapters', '03 - The Silver Tower.md'),
+      'utf8'
+    )
+    expect(ch3).toContain(
+      '> [!info] Characters\n> [[Elara]] · [[The Archivist]]'
+    )
+    expect(ch3).toContain(
+      '> [!info] Locations\n> [[The Silver Tower]]'
+    )
+    expect(ch3).not.toMatch(/^## Characters Appearing\s*$/m)
+    expect(ch3).not.toMatch(/^## Locations\s*$/m)
+    expect(ch3).not.toMatch(/^## Events\s*$/m)
   })
 
   it("preserves Writer's Notes text on regeneration", async () => {
@@ -199,7 +363,6 @@ describe('generateVault', () => {
     const first = await generateVault(extraction, project, vaultPath, {
       novelTitle: 'Mini Test Novel'
     })
-    // 3 chapters + 3 characters + 2 locations + timeline + continuity + dashboard = 11
     expect(first.filesWritten).toBe(11)
     expect(first.filesPreserved).toBe(0)
 
@@ -230,7 +393,7 @@ describe('generateVault', () => {
     expect(parsed.tokenUsage.inputTokens).toBe(28_400)
   })
 
-  it('groups continuity issues by severity and omits empty sections', async () => {
+  it('groups continuity issues by severity and maps each to a severity-colored callout', async () => {
     await generateVault(extraction, project, vaultPath, {
       novelTitle: 'Mini Test Novel'
     })
@@ -241,40 +404,92 @@ describe('generateVault', () => {
     expect(content).toContain('## High Severity')
     expect(content).toContain('## Medium Severity')
     expect(content).not.toContain('## Low Severity')
-    expect(content).toContain('### Chapter 3: ')
-    expect(content).toContain('### Chapter 2: ')
+    expect(content).toContain(
+      "> [!danger] Chapter 3: Elara's eye colour is described as grey in Chapter 1"
+    )
+    expect(content).toContain('> **Description:**')
+    expect(content).toContain('> **Suggestion:**')
+    expect(content).toContain(
+      '> [!warning] Chapter 2: Vorn is described as left-handed in Ch 1 but sheathes on h'
+    )
+    expect(content).not.toMatch(/^### Chapter \d+: /m)
   })
 
-  it('dashboard recent-issues list is capped at 5 and sorted by severity', async () => {
-    const manyIssues: ExtractionResult = {
+  it('maps low-severity continuity issues to the caution callout', async () => {
+    const withLow: ExtractionResult = {
       ...extraction,
       continuityIssues: [
-        { severity: 'low', description: 'Low A', chapters: [5], suggestion: '.' },
-        { severity: 'high', description: 'High A', chapters: [9], suggestion: '.' },
-        { severity: 'medium', description: 'Med A', chapters: [2], suggestion: '.' },
-        { severity: 'high', description: 'High B', chapters: [3], suggestion: '.' },
-        { severity: 'low', description: 'Low B', chapters: [7], suggestion: '.' },
-        { severity: 'medium', description: 'Med B', chapters: [4], suggestion: '.' },
-        { severity: 'high', description: 'High C', chapters: [11], suggestion: '.' }
+        {
+          severity: 'low',
+          description: 'Weather detail drift.',
+          chapters: [5],
+          suggestion: 'Reconcile rain description.'
+        }
       ]
     }
-    await generateVault(manyIssues, project, vaultPath, {
+    await generateVault(withLow, project, vaultPath, {
+      novelTitle: 'Mini Test Novel'
+    })
+    const content = await readFile(
+      join(vaultPath, 'Continuity', 'Flagged Issues.md'),
+      'utf8'
+    )
+    expect(content).toContain('## Low Severity')
+    expect(content).toContain('> [!caution] Chapter 5: Weather detail drift')
+  })
+
+  it('renders a Stats abstract callout on the dashboard with middle-dot separators', async () => {
+    await generateVault(extraction, project, vaultPath, {
       novelTitle: 'Mini Test Novel'
     })
     const dash = await readFile(join(vaultPath, 'Dashboard.md'), 'utf8')
-    const recent = dash
-      .split('## Recent Continuity Issues')[1]!
-      .split('##')[0]!
-    const highMatches = recent.match(/- High: /g) ?? []
-    const mediumMatches = recent.match(/- Medium: /g) ?? []
-    const lowMatches = recent.match(/- Low: /g) ?? []
-    expect(highMatches.length).toBe(3)
-    expect(mediumMatches.length).toBe(2)
-    expect(lowMatches.length).toBe(0)
-    // High issues must precede medium issues in the rendered list.
-    const firstMediumIdx = recent.indexOf('- Medium: ')
-    const lastHighIdx = recent.lastIndexOf('- High: ')
-    expect(lastHighIdx).toBeLessThan(firstMediumIdx)
+    expect(dash).toContain('> [!abstract] Stats')
+    expect(dash).toMatch(
+      /> \*\*Chapters:\*\* 3 · \*\*Characters:\*\* 3 · \*\*Locations:\*\* 2 · \*\*Events:\*\* 6/
+    )
+    expect(dash).toMatch(
+      /> \*\*Continuity issues:\*\* 2 \(1 high · 1 medium · 0 low\)/
+    )
+    expect(dash).toMatch(/> \*\*Last sync:\*\* \d{4}-\d{2}-\d{2} \d{2}:\d{2} UTC · \$0\.1[45]/)
+    expect(dash).not.toMatch(/^## Stats\s*$/m)
+    expect(dash).not.toMatch(/^## Last Sync\s*$/m)
+  })
+
+  it('renders a Recent High-Severity Issues danger callout only when high-severity issues exist', async () => {
+    await generateVault(extraction, project, vaultPath, {
+      novelTitle: 'Mini Test Novel'
+    })
+    const dash = await readFile(join(vaultPath, 'Dashboard.md'), 'utf8')
+    expect(dash).toContain('> [!danger] Recent High-Severity Issues')
+    expect(dash).toMatch(
+      /> - \[\[Flagged Issues#Chapter 3: Elara's eye colour is described as grey in Chapter 1 and blu…\]\]/
+    )
+  })
+
+  it('omits Recent High-Severity Issues callout when no high-severity issues exist', async () => {
+    const noHigh: ExtractionResult = {
+      ...extraction,
+      continuityIssues: extraction.continuityIssues.filter(
+        (i) => i.severity !== 'high'
+      )
+    }
+    await generateVault(noHigh, project, vaultPath, {
+      novelTitle: 'Mini Test Novel'
+    })
+    const dash = await readFile(join(vaultPath, 'Dashboard.md'), 'utf8')
+    expect(dash).not.toContain('> [!danger] Recent High-Severity Issues')
+  })
+
+  it('renders "Continuity issues: none" in Stats when there are zero issues', async () => {
+    const noIssues: ExtractionResult = {
+      ...extraction,
+      continuityIssues: []
+    }
+    await generateVault(noIssues, project, vaultPath, {
+      novelTitle: 'Mini Test Novel'
+    })
+    const dash = await readFile(join(vaultPath, 'Dashboard.md'), 'utf8')
+    expect(dash).toContain('> **Continuity issues:** none')
   })
 
   it('handles an empty extraction without crashing', async () => {
@@ -297,7 +512,7 @@ describe('generateVault', () => {
     const result = await generateVault(empty, emptyProject, vaultPath, {
       novelTitle: 'Empty'
     })
-    expect(result.filesWritten).toBe(3) // timeline + continuity + dashboard
+    expect(result.filesWritten).toBe(3)
     const timeline = await readFile(
       join(vaultPath, 'Timeline', 'Master Timeline.md'),
       'utf8'

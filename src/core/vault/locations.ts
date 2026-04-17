@@ -5,6 +5,11 @@ import type {
   ExtractionResult,
   VaultProgress
 } from '../../shared/types'
+import { renderCallout } from './callouts'
+import {
+  parseChapterTaggedDescription,
+  synthesizeDescription
+} from './descriptions'
 import { buildFrontmatter } from './frontmatter'
 import { stripHeadingMarkers } from './sanitize'
 import { writeManagedFile } from './writeManaged'
@@ -63,45 +68,86 @@ function buildLocationFile(
     appearances: [...location.appearances]
   })
 
-  const descriptionBody = stripHeadingMarkers(
-    location.description.trim().length > 0
-      ? location.description
-      : '*(not specified)*'
-  )
-
-  const significanceBody = stripHeadingMarkers(
-    location.significance.trim().length > 0
-      ? location.significance
-      : '*(not specified)*'
-  )
-
-  const appearancesBody =
-    location.appearances.length > 0
-      ? location.appearances
-          .map((order) => `- ${chapterWikiLink(order, ctx.chapterFilenames)}`)
-          .join('\n')
-      : '*(none)*'
+  const atAGlance = renderAtAGlance(location)
+  const descriptionSection = renderDescriptionSection(location.description)
+  const appearancesSection = renderAppearancesSection(location, ctx)
 
   const lines: string[] = [
     frontmatter.trimEnd(),
     '',
     `# ${location.name}`,
     '',
+    atAGlance,
+    '',
     '## Description',
     '',
-    descriptionBody,
-    '',
-    '## Significance',
-    '',
-    significanceBody,
+    descriptionSection,
     '',
     '## Appearances',
     '',
-    appearancesBody,
+    appearancesSection,
     '',
     "## Writer's Notes",
     ''
   ]
 
   return lines.join('\n') + '\n'
+}
+
+function renderAtAGlance(location: ExtractedLocation): string {
+  const bodyLines: string[] = []
+  bodyLines.push(`**First seen:** Chapter ${location.firstAppearanceChapter}`)
+  const appearsCount = location.appearances.length
+  bodyLines.push(
+    `**Appears in:** ${appearsCount} ${appearsCount === 1 ? 'chapter' : 'chapters'}`
+  )
+  const significance = location.significance.trim()
+  if (significance.length > 0) {
+    bodyLines.push(`**Significance:** ${stripHeadingMarkers(significance)}`)
+  }
+  return renderCallout({
+    type: 'abstract',
+    title: 'At a Glance',
+    body: bodyLines.join('\n')
+  })
+}
+
+function renderDescriptionSection(rawDescription: string): string {
+  const trimmed = rawDescription.trim()
+  if (trimmed.length === 0) {
+    return '*(not specified)*'
+  }
+
+  const blocks = parseChapterTaggedDescription(trimmed)
+  const synthesized = stripHeadingMarkers(
+    synthesizeDescription(trimmed, '. It ')
+  )
+
+  if (blocks.length < 2) {
+    return synthesized
+  }
+
+  const perChapterBody = blocks
+    .map(
+      (b) => `**Chapter ${b.chapterOrder}:** ${stripHeadingMarkers(b.text)}`
+    )
+    .join('\n')
+  const perChapterCallout = renderCallout({
+    type: 'note',
+    title: 'Per-chapter detail',
+    body: perChapterBody,
+    foldable: true
+  })
+
+  return `${synthesized}\n\n${perChapterCallout}`
+}
+
+function renderAppearancesSection(
+  location: ExtractedLocation,
+  ctx: LocationWriteContext
+): string {
+  if (location.appearances.length === 0) return '*(none)*'
+  return location.appearances
+    .map((order) => `- ${chapterWikiLink(order, ctx.chapterFilenames)}`)
+    .join('\n')
 }

@@ -2,28 +2,18 @@ import { join } from 'node:path'
 
 import type {
   ContinuityIssue,
-  ContinuitySeverity,
   ExtractedCharacter,
   ExtractedLocation,
   ExtractionResult,
   VaultProgress
 } from '../../shared/types'
 import { writeFileAtomic } from './atomic'
+import { renderCallout } from './callouts'
 import { continuityIssueHeading, countBySeverity } from './continuity'
 import { buildFrontmatter } from './frontmatter'
 import { stripHeadingMarkers } from './sanitize'
 
 const DASHBOARD_FILENAME = 'Dashboard.md'
-const SEVERITY_RANK: Record<ContinuitySeverity, number> = {
-  high: 0,
-  medium: 1,
-  low: 2
-}
-const SEVERITY_LABEL: Record<ContinuitySeverity, string> = {
-  high: 'High',
-  medium: 'Medium',
-  low: 'Low'
-}
 
 export interface DashboardWriteContext {
   vaultPath: string
@@ -65,33 +55,15 @@ function buildDashboardFile(
     '',
     '<!-- Regenerated on every sync. -->',
     '',
-    '## Stats',
-    '',
-    `- **Chapters:** ${extraction.chapters.length}`,
-    `- **Characters:** ${extraction.characters.length}`,
-    `- **Locations:** ${extraction.locations.length}`,
-    `- **Timeline events:** ${extraction.timeline.length}`,
-    `- **Continuity issues:** ${extraction.continuityIssues.length} (${counts.high} high / ${counts.medium} medium / ${counts.low} low)`,
-    '',
-    '## Last Sync',
-    '',
-    `- **Completed:** ${formatUtcHuman(now)}`,
-    `- **Tokens:** ${extraction.tokenUsage.inputTokens.toLocaleString(
-      'en-US'
-    )} in / ${extraction.tokenUsage.outputTokens.toLocaleString('en-US')} out`,
-    `- **Estimated cost:** $${extraction.tokenUsage.estimatedCostUSD.toFixed(2)}`,
+    renderStatsCallout(extraction, now),
     ''
   ]
 
-  const recentIssues = selectRecentIssues(extraction.continuityIssues, 5)
-  if (recentIssues.length > 0) {
-    sections.push('## Recent Continuity Issues', '')
-    for (const issue of recentIssues) {
-      const heading = continuityIssueHeading(issue)
-      const anchor = `[[Flagged Issues#${heading}]]`
-      sections.push(`- ${SEVERITY_LABEL[issue.severity]}: ${anchor}`)
-    }
-    sections.push('', '_(up to 5 most severe)_', '')
+  const highIssues = extraction.continuityIssues.filter(
+    (i) => i.severity === 'high'
+  )
+  if (counts.high > 0) {
+    sections.push(renderHighSeverityCallout(highIssues), '')
   }
 
   sections.push('## Characters', '')
@@ -139,18 +111,44 @@ function buildDashboardFile(
   return frontmatter + sections.join('\n').trimEnd() + '\n'
 }
 
-function selectRecentIssues(
-  issues: ContinuityIssue[],
-  limit: number
-): ContinuityIssue[] {
-  return issues
+function renderStatsCallout(extraction: ExtractionResult, now: Date): string {
+  const counts = countBySeverity(extraction.continuityIssues)
+  const totalIssues = extraction.continuityIssues.length
+
+  const line1 =
+    `**Chapters:** ${extraction.chapters.length} · ` +
+    `**Characters:** ${extraction.characters.length} · ` +
+    `**Locations:** ${extraction.locations.length} · ` +
+    `**Events:** ${extraction.timeline.length}`
+
+  const issuesLine =
+    totalIssues === 0
+      ? '**Continuity issues:** none'
+      : `**Continuity issues:** ${totalIssues} (${counts.high} high · ${counts.medium} medium · ${counts.low} low)`
+
+  const cost = `$${extraction.tokenUsage.estimatedCostUSD.toFixed(2)}`
+  const lastSync = `**Last sync:** ${formatUtcHuman(now)} · ${cost}`
+
+  return renderCallout({
+    type: 'abstract',
+    title: 'Stats',
+    body: [line1, issuesLine, lastSync].join('\n')
+  })
+}
+
+function renderHighSeverityCallout(highIssues: ContinuityIssue[]): string {
+  const sorted = highIssues
     .slice()
-    .sort((a, b) => {
-      const sev = SEVERITY_RANK[a.severity] - SEVERITY_RANK[b.severity]
-      if (sev !== 0) return sev
-      return (a.chapters[0] ?? 0) - (b.chapters[0] ?? 0)
-    })
-    .slice(0, limit)
+    .sort((a, b) => (a.chapters[0] ?? 0) - (b.chapters[0] ?? 0))
+  const bulletLines = sorted.map((issue) => {
+    const heading = continuityIssueHeading(issue)
+    return `- [[Flagged Issues#${heading}]]`
+  })
+  return renderCallout({
+    type: 'danger',
+    title: 'Recent High-Severity Issues',
+    body: bulletLines.join('\n')
+  })
 }
 
 function sortByNameInsensitive<T extends ExtractedCharacter | ExtractedLocation>(

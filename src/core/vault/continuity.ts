@@ -7,6 +7,7 @@ import type {
   VaultProgress
 } from '../../shared/types'
 import { writeFileAtomic } from './atomic'
+import { renderCallout, type CalloutType } from './callouts'
 import { buildFrontmatter } from './frontmatter'
 import { stripHeadingMarkers } from './sanitize'
 
@@ -17,6 +18,11 @@ const SEVERITY_LABELS: Record<ContinuitySeverity, string> = {
   high: 'High Severity',
   medium: 'Medium Severity',
   low: 'Low Severity'
+}
+const SEVERITY_CALLOUTS: Record<ContinuitySeverity, CalloutType> = {
+  high: 'danger',
+  medium: 'warning',
+  low: 'caution'
 }
 
 export interface ContinuityWriteContext {
@@ -44,7 +50,7 @@ export interface ContinuityIssueHeading {
 }
 
 /**
- * Build the H3 heading text for an issue. Uses "Chapter N: short-description"
+ * Build the short title text for an issue. Uses "Chapter N: short-description"
  * where short-description is the first sentence or first 60 chars, whichever
  * is shorter. Exposed so the dashboard can regenerate identical anchor text.
  */
@@ -99,13 +105,17 @@ function buildContinuityFile(extraction: ExtractionResult): string {
       .slice()
       .sort((a, b) => (a.chapters[0] ?? 0) - (b.chapters[0] ?? 0))
     for (const issue of sorted) {
-      sections.push(`### ${continuityIssueHeading(issue)}`, '')
-      sections.push(
+      const body = [
         `**Description:** ${stripHeadingMarkers(issue.description)}`,
-        ''
-      )
+        '',
+        `**Suggestion:** ${stripHeadingMarkers(issue.suggestion)}`
+      ].join('\n')
       sections.push(
-        `**Suggestion:** ${stripHeadingMarkers(issue.suggestion)}`,
+        renderCallout({
+          type: SEVERITY_CALLOUTS[severity],
+          title: continuityIssueHeading(issue),
+          body
+        }),
         ''
       )
     }
