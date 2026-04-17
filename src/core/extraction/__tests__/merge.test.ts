@@ -444,6 +444,18 @@ describe('mergeTier', () => {
     expect(mergeTier('secondary', 'minor')).toBe('secondary')
     expect(mergeTier('main', 'main')).toBe('main')
   })
+
+  it('ranks "mentioned" below "minor" and keeps the higher existing tier', () => {
+    expect(mergeTier('minor', 'mentioned')).toBe('minor')
+    expect(mergeTier('secondary', 'mentioned')).toBe('secondary')
+    expect(mergeTier('main', 'mentioned')).toBe('main')
+  })
+
+  it('promotes an existing "mentioned" to main when a later chapter sees the character act', () => {
+    expect(mergeTier('mentioned', 'main')).toBe('main')
+    expect(mergeTier('mentioned', 'secondary')).toBe('secondary')
+    expect(mergeTier('mentioned', 'minor')).toBe('minor')
+  })
 })
 
 describe('mergeLocations', () => {

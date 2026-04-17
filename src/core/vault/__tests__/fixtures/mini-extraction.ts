@@ -120,7 +120,7 @@ export function buildMiniExtraction(): ExtractionResult {
         relationships: [],
         firstAppearanceChapter: 3,
         appearances: [3],
-        tier: 'secondary',
+        tier: 'minor',
         customFields: {}
       }
     ],
@@ -142,6 +142,15 @@ export function buildMiniExtraction(): ExtractionResult {
         firstAppearanceChapter: 3,
         appearances: [3],
         parentLocation: null,
+        customFields: {}
+      },
+      {
+        name: 'The Archive',
+        description: 'Rows of forbidden books behind an iron grille.',
+        significance: 'Where the Archivist hoards restricted texts.',
+        firstAppearanceChapter: 3,
+        appearances: [3],
+        parentLocation: 'The Silver Tower',
         customFields: {}
       }
     ],

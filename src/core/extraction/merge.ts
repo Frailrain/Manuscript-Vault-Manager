@@ -14,7 +14,8 @@ import type { ContinuityPassResult, TimelinePassResult } from './passes'
 const TIER_RANK: Record<CharacterTier, number> = {
   main: 3,
   secondary: 2,
-  minor: 1
+  minor: 1,
+  mentioned: 0
 }
 
 export function mergeTier(
@@ -79,7 +80,10 @@ export function mergeCharacters(
 }
 
 function normalizeTier(tier: CharacterTier | undefined): CharacterTier {
-  return tier === 'main' || tier === 'secondary' || tier === 'minor'
+  return tier === 'main' ||
+    tier === 'secondary' ||
+    tier === 'minor' ||
+    tier === 'mentioned'
     ? tier
     : 'minor'
 }

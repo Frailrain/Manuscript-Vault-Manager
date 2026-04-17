@@ -57,7 +57,7 @@ export interface LLMProviderConfig {
   glossary?: GlossaryEntry[]
 }
 
-export type CharacterTier = 'main' | 'secondary' | 'minor'
+export type CharacterTier = 'main' | 'secondary' | 'minor' | 'mentioned'
 
 export interface ExtractedCharacter {
   name: string

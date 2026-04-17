@@ -39,8 +39,10 @@ The description will be merged across chapters; chapterActivity is captured per-
 When classifying characters into tiers:
 - A **main** character is the protagonist, primary antagonist, or a member of the core cast whose arc the book is fundamentally about. Typically fewer than 5 characters per novel.
 - A **secondary** character appears across multiple chapters, has a meaningful story role (mentor, love interest, rival, foil), but the book is not about them.
-- A **minor** character is named but appears in one scene or a handful of scenes without central narrative weight. Shopkeepers, guards, one-off encounters.
-When in doubt between main and secondary, choose secondary. When in doubt between secondary and minor, choose secondary.`
+- A **minor** character is named and actually appears on-page in at least one scene, doing something, even briefly. Shopkeepers with dialogue, guards who stop the protagonist, one-off encounters who speak.
+- A **mentioned** character is named but never appears on-page as an actor. They're referenced in dialogue ("my sister Sarah said..."), memory ("I remember what Father used to say..."), or narrative context ("the High Chancellor had issued the edict last year") without ever being present in a scene.
+
+When in doubt between main and secondary, choose secondary. When in doubt between secondary and minor, choose secondary. When in doubt between minor and mentioned, choose minor (if the character does any action, even off-page but in the current narrative, they're minor).`
 
 const BASE_ITEM_PROPERTIES: Record<string, JSONSchemaProperty> = {
   name: {
@@ -85,9 +87,9 @@ const BASE_ITEM_PROPERTIES: Record<string, JSONSchemaProperty> = {
   },
   tier: {
     type: 'string',
-    enum: ['main', 'secondary', 'minor'],
+    enum: ['main', 'secondary', 'minor', 'mentioned'],
     description:
-      'Main = protagonist or primary cast, appears frequently and drives plot. Secondary = recurring character with meaningful story role but not central. Minor = named character appearing in one or few scenes without central narrative weight.'
+      "Main = protagonist or primary cast, appears frequently and drives plot. Secondary = recurring character with meaningful story role but not central. Minor = named character who appears in at least one scene and does something, even briefly (shopkeeper, guard, contact, one-off encounter). Mentioned = named character who is only referred to in dialogue, memory, or narrative \u2014 never appears on-page as an actor in any scene."
   }
 }
 
@@ -209,7 +211,10 @@ export const charactersPass: PassRunner<CharactersPassResult> = {
           : [],
         isNew: typeof c.isNew === 'boolean' ? c.isNew : true,
         tier:
-          c.tier === 'main' || c.tier === 'secondary' || c.tier === 'minor'
+          c.tier === 'main' ||
+          c.tier === 'secondary' ||
+          c.tier === 'minor' ||
+          c.tier === 'mentioned'
             ? c.tier
             : 'minor'
       }

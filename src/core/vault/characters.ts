@@ -1,4 +1,5 @@
-import { join } from 'node:path'
+import { mkdir } from 'node:fs/promises'
+import { dirname, join } from 'node:path'
 
 import type { GenreFieldDef } from '../../shared/presets'
 import type {
@@ -8,6 +9,7 @@ import type {
 } from '../../shared/types'
 import { renderCallout } from './callouts'
 import { synthesizeDescription } from './descriptions'
+import { basenameOf } from './filenames'
 import { buildFrontmatter } from './frontmatter'
 import { stripHeadingMarkers } from './sanitize'
 import {
@@ -54,6 +56,7 @@ export async function writeCharacters(
       total,
       currentFile: `${filename}.md`
     })
+    await mkdir(dirname(path), { recursive: true })
     const content = buildCharacterFile(character, ctx)
     const outcome = await writeManagedFile(path, content)
     stats.filesWritten += 1
@@ -213,7 +216,7 @@ function renderRelationshipLine(
   let linkOrName: string
   if (canonical) {
     const filename = ctx.characterFilenames.get(canonical) ?? canonical
-    linkOrName = `[[${filename}]]`
+    linkOrName = `[[${basenameOf(filename)}]]`
   } else {
     ctx.warnings.push(
       `Unresolved character reference: '${rel.name}' in ${sourceName} relationships`

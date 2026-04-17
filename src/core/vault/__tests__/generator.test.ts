@@ -100,7 +100,7 @@ describe('generateVault', () => {
       novelTitle: 'Mini Test Novel'
     })
     const elara = await readFile(
-      join(vaultPath, 'Characters', 'Elara.md'),
+      join(vaultPath, 'Characters', 'Main', 'Elara.md'),
       'utf8'
     )
     expect(elara).toContain('aliases: [ "El", "The Scholar" ]')
@@ -114,7 +114,7 @@ describe('generateVault', () => {
       novelTitle: 'Mini Test Novel'
     })
     const vorn = await readFile(
-      join(vaultPath, 'Characters', 'Captain Vorn.md'),
+      join(vaultPath, 'Characters', 'Secondary', 'Captain Vorn.md'),
       'utf8'
     )
     expect(vorn).not.toMatch(/^aliases:/m)
@@ -125,7 +125,7 @@ describe('generateVault', () => {
       novelTitle: 'Mini Test Novel'
     })
     const elara = await readFile(
-      join(vaultPath, 'Characters', 'Elara.md'),
+      join(vaultPath, 'Characters', 'Main', 'Elara.md'),
       'utf8'
     )
     expect(elara).toMatch(
@@ -138,7 +138,7 @@ describe('generateVault', () => {
       novelTitle: 'Mini Test Novel'
     })
     const elara = await readFile(
-      join(vaultPath, 'Characters', 'Elara.md'),
+      join(vaultPath, 'Characters', 'Main', 'Elara.md'),
       'utf8'
     )
     expect(elara).toContain(
@@ -158,7 +158,7 @@ describe('generateVault', () => {
       novelTitle: 'Mini Test Novel'
     })
     const vorn = await readFile(
-      join(vaultPath, 'Characters', 'Captain Vorn.md'),
+      join(vaultPath, 'Characters', 'Secondary', 'Captain Vorn.md'),
       'utf8'
     )
     expect(vorn).toContain('> [!note]- Per-chapter activity')
@@ -173,7 +173,7 @@ describe('generateVault', () => {
       novelTitle: 'Mini Test Novel'
     })
     const elara = await readFile(
-      join(vaultPath, 'Characters', 'Elara.md'),
+      join(vaultPath, 'Characters', 'Main', 'Elara.md'),
       'utf8'
     )
     expect(elara).not.toMatch(/^## Role\s*$/m)
@@ -184,7 +184,7 @@ describe('generateVault', () => {
       novelTitle: 'Mini Test Novel'
     })
     const elara = await readFile(
-      join(vaultPath, 'Characters', 'Elara.md'),
+      join(vaultPath, 'Characters', 'Main', 'Elara.md'),
       'utf8'
     )
     expect(elara).toContain('> [!info]- Relationships (2)')
@@ -203,7 +203,7 @@ describe('generateVault', () => {
       novelTitle: 'Mini Test Novel'
     })
     const archivist = await readFile(
-      join(vaultPath, 'Characters', 'The Archivist.md'),
+      join(vaultPath, 'Characters', 'Minor', 'The Archivist.md'),
       'utf8'
     )
     expect(archivist).toContain('## Relationships\n\n*(none recorded)*')
@@ -215,7 +215,7 @@ describe('generateVault', () => {
       novelTitle: 'Mini Test Novel'
     })
     const archivist = await readFile(
-      join(vaultPath, 'Characters', 'The Archivist.md'),
+      join(vaultPath, 'Characters', 'Minor', 'The Archivist.md'),
       'utf8'
     )
     expect(archivist).not.toContain('> [!note]- Per-chapter activity')
@@ -226,7 +226,7 @@ describe('generateVault', () => {
       novelTitle: 'Mini Test Novel'
     })
     const archivist = await readFile(
-      join(vaultPath, 'Characters', 'The Archivist.md'),
+      join(vaultPath, 'Characters', 'Minor', 'The Archivist.md'),
       'utf8'
     )
     expect(archivist).toContain('> [!abstract] At a Glance')
@@ -334,7 +334,7 @@ describe('generateVault', () => {
     await generateVault(extraction, project, vaultPath, {
       novelTitle: 'Mini Test Novel'
     })
-    const elaraPath = join(vaultPath, 'Characters', 'Elara.md')
+    const elaraPath = join(vaultPath, 'Characters', 'Main', 'Elara.md')
     const before = await readFile(elaraPath, 'utf8')
     const edited = before.replace(
       "## Writer's Notes\n",
@@ -353,7 +353,7 @@ describe('generateVault', () => {
     await generateVault(extraction, project, vaultPath, {
       novelTitle: 'Mini Test Novel'
     })
-    const elaraPath = join(vaultPath, 'Characters', 'Elara.md')
+    const elaraPath = join(vaultPath, 'Characters', 'Main', 'Elara.md')
     const edited = (await readFile(elaraPath, 'utf8'))
       .replace(/## Writer's Notes[\s\S]*$/, '')
       .concat('\nAn orphan paragraph with no heading.\n')
@@ -392,10 +392,10 @@ describe('generateVault', () => {
     const first = await generateVault(extraction, project, vaultPath, {
       novelTitle: 'Mini Test Novel'
     })
-    expect(first.filesWritten).toBe(11)
+    expect(first.filesWritten).toBe(12)
     expect(first.filesPreserved).toBe(0)
 
-    const notesPath = join(vaultPath, 'Characters', 'Elara.md')
+    const notesPath = join(vaultPath, 'Characters', 'Main', 'Elara.md')
     const notesContent = (await readFile(notesPath, 'utf8')).replace(
       "## Writer's Notes\n",
       "## Writer's Notes\n\nKeep me.\n"
@@ -405,7 +405,7 @@ describe('generateVault', () => {
     const second = await generateVault(extraction, project, vaultPath, {
       novelTitle: 'Mini Test Novel'
     })
-    expect(second.filesWritten).toBe(11)
+    expect(second.filesWritten).toBe(12)
     expect(second.filesPreserved).toBe(1)
   })
 
@@ -474,7 +474,7 @@ describe('generateVault', () => {
     const dash = await readFile(join(vaultPath, 'Dashboard.md'), 'utf8')
     expect(dash).toContain('> [!abstract] Stats')
     expect(dash).toMatch(
-      /> \*\*Chapters:\*\* 3 · \*\*Characters:\*\* 3 · \*\*Locations:\*\* 2 · \*\*Events:\*\* 6/
+      /> \*\*Chapters:\*\* 3 · \*\*Characters:\*\* 3 · \*\*Locations:\*\* 3 · \*\*Events:\*\* 6/
     )
     expect(dash).toMatch(
       /> \*\*Continuity issues:\*\* 2 \(1 high · 1 medium · 0 low\)/
@@ -575,5 +575,173 @@ describe('generateVault', () => {
     )
     expect(ch3).not.toMatch(/^parent:/m)
     expect(ch3).not.toMatch(/^synopsis:/m)
+  })
+
+  it('creates all four character tier subfolders even when a tier has no characters', async () => {
+    await generateVault(extraction, project, vaultPath, {
+      novelTitle: 'Mini Test Novel'
+    })
+    for (const tier of ['Main', 'Secondary', 'Minor', 'Mentioned']) {
+      expect(await pathExists(join(vaultPath, 'Characters', tier))).toBe(true)
+    }
+  })
+
+  it('writes a mentioned-tier character into Characters/Mentioned/', async () => {
+    const withMentioned: ExtractionResult = {
+      ...extraction,
+      characters: [
+        ...extraction.characters,
+        {
+          name: 'Queen Mira',
+          aliases: [],
+          description: 'Referenced only in letters.',
+          chapterActivity: {},
+          role: '',
+          relationships: [],
+          firstAppearanceChapter: 1,
+          appearances: [],
+          tier: 'mentioned',
+          customFields: {}
+        }
+      ]
+    }
+    await generateVault(withMentioned, project, vaultPath, {
+      novelTitle: 'Mini Test Novel'
+    })
+    expect(
+      await pathExists(
+        join(vaultPath, 'Characters', 'Mentioned', 'Queen Mira.md')
+      )
+    ).toBe(true)
+  })
+
+  it('chapter Characters callout uses basename wiki-links, not tier paths', async () => {
+    await generateVault(extraction, project, vaultPath, {
+      novelTitle: 'Mini Test Novel'
+    })
+    const ch3 = await readFile(
+      join(vaultPath, 'Chapters', '03 - The Silver Tower.md'),
+      'utf8'
+    )
+    expect(ch3).not.toContain('[[Main/Elara]]')
+    expect(ch3).not.toContain('[[Minor/The Archivist]]')
+    expect(ch3).toContain('[[Elara]]')
+    expect(ch3).toContain('[[The Archivist]]')
+  })
+
+  it('nests a sub-location beneath its parent folder', async () => {
+    await generateVault(extraction, project, vaultPath, {
+      novelTitle: 'Mini Test Novel'
+    })
+    expect(
+      await pathExists(
+        join(vaultPath, 'Locations', 'The Silver Tower', 'The Archive.md')
+      )
+    ).toBe(true)
+    expect(
+      await pathExists(join(vaultPath, 'Locations', 'The Silver Tower.md'))
+    ).toBe(true)
+  })
+
+  it('renders a Sub-locations callout on a parent location with children', async () => {
+    await generateVault(extraction, project, vaultPath, {
+      novelTitle: 'Mini Test Novel'
+    })
+    const silverTower = await readFile(
+      join(vaultPath, 'Locations', 'The Silver Tower.md'),
+      'utf8'
+    )
+    expect(silverTower).toContain('> [!info] Sub-locations')
+    expect(silverTower).toContain('> - [[The Archive]]')
+  })
+
+  it('omits the Sub-locations callout on a leaf location', async () => {
+    await generateVault(extraction, project, vaultPath, {
+      novelTitle: 'Mini Test Novel'
+    })
+    const academy = await readFile(
+      join(vaultPath, 'Locations', 'The Academy.md'),
+      'utf8'
+    )
+    expect(academy).not.toContain('Sub-locations')
+  })
+
+  it('renders main characters on the dashboard inline with tier and appearance count', async () => {
+    await generateVault(extraction, project, vaultPath, {
+      novelTitle: 'Mini Test Novel'
+    })
+    const dash = await readFile(join(vaultPath, 'Dashboard.md'), 'utf8')
+    expect(dash).toContain('- [[Elara]] (main, 3 chapters)')
+  })
+
+  it('collapses non-main characters into a foldable "Other Characters" callout with populated subsections only', async () => {
+    await generateVault(extraction, project, vaultPath, {
+      novelTitle: 'Mini Test Novel'
+    })
+    const dash = await readFile(join(vaultPath, 'Dashboard.md'), 'utf8')
+    expect(dash).toContain('> [!info]- Other Characters (2)')
+    expect(dash).toContain('> ### Secondary')
+    expect(dash).toContain('> - [[Captain Vorn]] (2 chapters)')
+    expect(dash).toContain('> ### Minor')
+    expect(dash).toContain('> - [[The Archivist]] (1 chapter)')
+    expect(dash).not.toContain('> ### Mentioned')
+  })
+
+  it('labels a mentioned character with zero appearances as "only referenced" on the dashboard', async () => {
+    const withMentioned: ExtractionResult = {
+      ...extraction,
+      characters: [
+        ...extraction.characters,
+        {
+          name: 'Queen Mira',
+          aliases: [],
+          description: 'Never appears on-page.',
+          chapterActivity: {},
+          role: '',
+          relationships: [],
+          firstAppearanceChapter: 1,
+          appearances: [],
+          tier: 'mentioned',
+          customFields: {}
+        }
+      ]
+    }
+    await generateVault(withMentioned, project, vaultPath, {
+      novelTitle: 'Mini Test Novel'
+    })
+    const dash = await readFile(join(vaultPath, 'Dashboard.md'), 'utf8')
+    expect(dash).toContain('> ### Mentioned')
+    expect(dash).toContain('> - [[Queen Mira]] (only referenced)')
+  })
+
+  it('lists only top-level locations on the dashboard', async () => {
+    await generateVault(extraction, project, vaultPath, {
+      novelTitle: 'Mini Test Novel'
+    })
+    const dash = await readFile(join(vaultPath, 'Dashboard.md'), 'utf8')
+    const locationsSection = dash.split('## Locations')[1]!.split('## Chapters')[0]!
+    expect(locationsSection).toContain('[[The Academy]]')
+    expect(locationsSection).toContain('[[The Silver Tower]]')
+    expect(locationsSection).not.toContain('[[The Archive]]')
+  })
+
+  it('removes legacy top-level Characters/*.md files left over from a pre-tier layout', async () => {
+    await mkdir(join(vaultPath, 'Characters'), { recursive: true })
+    const legacyPath = join(vaultPath, 'Characters', 'Elara.md')
+    await writeFile(legacyPath, '---\ntype: "character"\n---\nstale\n', 'utf8')
+
+    await generateVault(extraction, project, vaultPath, {
+      novelTitle: 'Mini Test Novel'
+    })
+
+    expect(await pathExists(legacyPath)).toBe(false)
+    expect(
+      await pathExists(join(vaultPath, 'Characters', 'Main', 'Elara.md'))
+    ).toBe(true)
+    const parsed = JSON.parse(
+      await readFile(join(vaultPath, '_meta', 'extraction-log.json'), 'utf8')
+    )
+    const warnings = parsed.vaultWarnings as string[]
+    expect(warnings.some((w) => w.toLowerCase().includes('legacy'))).toBe(true)
   })
 })

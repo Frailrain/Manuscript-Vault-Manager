@@ -1,3 +1,5 @@
+import { basenameOf } from './filenames'
+
 export interface NameResolver {
   resolve(name: string): string | undefined
 }
@@ -43,7 +45,35 @@ export function renderEntityLink(
     return rawName
   }
   const filename = filenameFor(canonical)
-  return `[[${filename}]]`
+  return `[[${basenameOf(filename)}]]`
+}
+
+/**
+ * Build a wiki-link for a character by canonical name. Filenames may include a
+ * tier prefix like `Main/Elara`; the wiki-link text uses the basename only so
+ * Obsidian can resolve `[[Elara]]` regardless of which tier folder holds it.
+ */
+export function characterWikiLink(
+  canonicalName: string,
+  filenames: Map<string, string>
+): string {
+  const fullPath = filenames.get(canonicalName)
+  if (!fullPath) return canonicalName
+  return `[[${basenameOf(fullPath)}]]`
+}
+
+/**
+ * Build a wiki-link for a location by canonical name. Filenames may include a
+ * parent-chain prefix like `Ganston's Crossing/Defensive Line`; the wiki-link
+ * text uses the basename only.
+ */
+export function locationWikiLink(
+  canonicalName: string,
+  filenames: Map<string, string>
+): string {
+  const fullPath = filenames.get(canonicalName)
+  if (!fullPath) return canonicalName
+  return `[[${basenameOf(fullPath)}]]`
 }
 
 /**

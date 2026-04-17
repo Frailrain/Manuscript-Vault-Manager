@@ -1,6 +1,7 @@
 import { join } from 'node:path'
 
 import type {
+  CharacterTier,
   ContinuityIssue,
   ExtractedCharacter,
   ExtractedLocation,
@@ -10,6 +11,7 @@ import type {
 import { writeFileAtomic } from './atomic'
 import { renderCallout } from './callouts'
 import { continuityIssueHeading, countBySeverity } from './continuity'
+import { basenameOf } from './filenames'
 import { buildFrontmatter } from './frontmatter'
 import { stripHeadingMarkers } from './sanitize'
 
@@ -68,30 +70,11 @@ function buildDashboardFile(
   }
 
   sections.push('## Characters', '')
-  if (extraction.characters.length === 0) {
-    sections.push('_(none)_')
-  } else {
-    for (const char of sortByNameInsensitive(extraction.characters)) {
-      const filename = ctx.characterFilenames.get(char.name) ?? char.name
-      const inline = characterInlineSuffix(char, ctx.genrePresetId)
-      sections.push(
-        `- [[${filename}]]${inline} (${char.appearances.length} ${pluralize(char.appearances.length, 'chapter')})`
-      )
-    }
-  }
+  sections.push(...renderCharactersSection(extraction.characters, ctx))
   sections.push('')
 
   sections.push('## Locations', '')
-  if (extraction.locations.length === 0) {
-    sections.push('_(none)_')
-  } else {
-    for (const loc of sortByNameInsensitive(extraction.locations)) {
-      const filename = ctx.locationFilenames.get(loc.name) ?? loc.name
-      sections.push(
-        `- [[${filename}]] (${loc.appearances.length} ${pluralize(loc.appearances.length, 'chapter')})`
-      )
-    }
-  }
+  sections.push(...renderLocationsSection(extraction.locations, ctx))
   sections.push('')
 
   sections.push('## Chapters', '')
@@ -103,7 +86,9 @@ function buildDashboardFile(
       .sort((a, b) => a.chapterOrder - b.chapterOrder)
     for (const ch of ordered) {
       const filename = ctx.chapterFilenames.get(ch.chapterOrder)
-      const link = filename ? `[[${filename}]]` : `Chapter ${ch.chapterOrder}`
+      const link = filename
+        ? `[[${basenameOf(filename)}]]`
+        : `Chapter ${ch.chapterOrder}`
       const preview = summaryPreview(ch.summary)
       sections.push(`${ch.chapterOrder}. ${link}${preview ? ` — ${preview}` : ''}`)
     }
@@ -136,6 +121,103 @@ function renderStatsCallout(extraction: ExtractionResult, now: Date): string {
     title: 'Stats',
     body: [line1, issuesLine, lastSync].join('\n')
   })
+}
+
+function renderCharactersSection(
+  characters: ExtractedCharacter[],
+  ctx: DashboardWriteContext
+): string[] {
+  if (characters.length === 0) return ['_(none)_']
+  const mainChars = sortByNameInsensitive(
+    characters.filter((c) => c.tier === 'main')
+  )
+  const otherTiers: CharacterTier[] = ['secondary', 'minor', 'mentioned']
+  const otherChars = characters.filter((c) =>
+    (otherTiers as CharacterTier[]).includes(c.tier)
+  )
+
+  const out: string[] = []
+  if (mainChars.length === 0) {
+    out.push('_(no main characters)_')
+  } else {
+    for (const char of mainChars) {
+      out.push(mainCharacterLine(char, ctx))
+    }
+  }
+
+  if (otherChars.length > 0) {
+    out.push('')
+    out.push(renderOtherCharactersCallout(otherChars, ctx))
+  }
+  return out
+}
+
+function mainCharacterLine(
+  char: ExtractedCharacter,
+  ctx: DashboardWriteContext
+): string {
+  const filename = ctx.characterFilenames.get(char.name) ?? char.name
+  const link = `[[${basenameOf(filename)}]]`
+  const inline = characterInlineSuffix(char, ctx.genrePresetId)
+  return `- ${link}${inline} (main, ${appearanceText(char.appearances.length)})`
+}
+
+function renderOtherCharactersCallout(
+  others: ExtractedCharacter[],
+  ctx: DashboardWriteContext
+): string {
+  const grouping: Array<{ tier: CharacterTier; heading: string }> = [
+    { tier: 'secondary', heading: 'Secondary' },
+    { tier: 'minor', heading: 'Minor' },
+    { tier: 'mentioned', heading: 'Mentioned' }
+  ]
+  const bodyLines: string[] = []
+  for (const { tier, heading } of grouping) {
+    const inTier = sortByNameInsensitive(others.filter((c) => c.tier === tier))
+    if (inTier.length === 0) continue
+    if (bodyLines.length > 0) bodyLines.push('')
+    bodyLines.push(`### ${heading}`)
+    for (const char of inTier) {
+      bodyLines.push(otherCharacterLine(char, ctx))
+    }
+  }
+  return renderCallout({
+    type: 'info',
+    title: `Other Characters (${others.length})`,
+    foldable: true,
+    body: bodyLines.join('\n')
+  })
+}
+
+function otherCharacterLine(
+  char: ExtractedCharacter,
+  ctx: DashboardWriteContext
+): string {
+  const filename = ctx.characterFilenames.get(char.name) ?? char.name
+  const link = `[[${basenameOf(filename)}]]`
+  const count = char.appearances.length
+  const suffix = count === 0 ? 'only referenced' : appearanceText(count)
+  return `- ${link} (${suffix})`
+}
+
+function appearanceText(count: number): string {
+  return `${count} ${pluralize(count, 'chapter')}`
+}
+
+function renderLocationsSection(
+  locations: ExtractedLocation[],
+  ctx: DashboardWriteContext
+): string[] {
+  const topLevel = locations.filter((loc) => loc.parentLocation === null)
+  if (topLevel.length === 0) return ['_(none)_']
+  const out: string[] = []
+  for (const loc of sortByNameInsensitive(topLevel)) {
+    const filename = ctx.locationFilenames.get(loc.name) ?? loc.name
+    out.push(
+      `- [[${basenameOf(filename)}]] (${appearanceText(loc.appearances.length)})`
+    )
+  }
+  return out
 }
 
 function renderHighSeverityCallout(highIssues: ContinuityIssue[]): string {

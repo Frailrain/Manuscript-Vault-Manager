@@ -1,4 +1,4 @@
-import { mkdir, rm } from 'node:fs/promises'
+import { mkdir, readdir, rm, unlink } from 'node:fs/promises'
 import { join } from 'node:path'
 
 import type {
@@ -16,10 +16,11 @@ import { writeContinuity } from './continuity'
 import { writeDashboard } from './dashboard'
 import { VaultGenerationError } from './errors'
 import {
-  FilenameAllocator,
+  CHARACTER_TIER_FOLDERS,
+  allocateCharacterFilenames,
   chapterFilename as buildChapterFilename
 } from './filenames'
-import { writeLocations } from './locations'
+import { allocateLocationFilenames, writeLocations } from './locations'
 import { writeTimeline } from './timeline'
 import { buildNameResolver } from './wikilinks'
 
@@ -61,7 +62,12 @@ export async function generateVault(
       await ensureDirectory(dir)
     }
 
+    for (const folder of CHARACTER_TIER_FOLDERS) {
+      await ensureDirectory(join(charactersDir, folder))
+    }
+
     const warnings: string[] = []
+    await cleanupLegacyFlatCharacters(charactersDir, warnings)
 
     const { chapterFilenames, chaptersByUuid } = buildChapterIndexes(
       extraction,
@@ -69,25 +75,16 @@ export async function generateVault(
       warnings
     )
 
-    const characterAllocator = new FilenameAllocator()
-    const characterFilenames = new Map<string, string>()
-    for (const char of extraction.characters) {
-      characterFilenames.set(
-        char.name,
-        characterAllocator.allocate(char.name, 'character')
-      )
-    }
-    warnings.push(...characterAllocator.warnings)
+    const characterAllocation = allocateCharacterFilenames(
+      extraction.characters
+    )
+    const characterFilenames = characterAllocation.filenames
+    warnings.push(...characterAllocation.warnings)
 
-    const locationAllocator = new FilenameAllocator()
-    const locationFilenames = new Map<string, string>()
-    for (const loc of extraction.locations) {
-      locationFilenames.set(
-        loc.name,
-        locationAllocator.allocate(loc.name, 'location')
-      )
-    }
-    warnings.push(...locationAllocator.warnings)
+    const locationAllocation = allocateLocationFilenames(extraction.locations)
+    const locationFilenames = locationAllocation.filenames
+    const locationChildren = locationAllocation.children
+    warnings.push(...locationAllocation.warnings)
 
     const characterResolver = buildNameResolver(extraction.characters)
     const locationResolver = buildNameResolver(extraction.locations)
@@ -125,6 +122,7 @@ export async function generateVault(
     const locationStats = await writeLocations(extraction, {
       locationsDir,
       locationFilenames,
+      locationChildren,
       chapterFilenames,
       warnings,
       onProgress,
@@ -211,6 +209,40 @@ function validateInputs(
       'options.novelTitle must be a string',
       'input'
     )
+  }
+}
+
+/**
+ * Delete any stray `.md` files directly under `Characters/` (top-level). Under
+ * the tier-subfolder layout, no character file should live at the top level —
+ * everything goes into `Main/`, `Secondary/`, `Minor/`, or `Mentioned/`. Files
+ * left here are from pre-tier-subfolder vaults and would otherwise show as
+ * duplicates alongside the new structured files.
+ */
+async function cleanupLegacyFlatCharacters(
+  charactersDir: string,
+  warnings: string[]
+): Promise<void> {
+  let entries: import('node:fs').Dirent[]
+  try {
+    entries = await readdir(charactersDir, { withFileTypes: true })
+  } catch {
+    return
+  }
+  for (const entry of entries) {
+    if (!entry.isFile()) continue
+    if (!entry.name.toLowerCase().endsWith('.md')) continue
+    const legacy = join(charactersDir, entry.name)
+    try {
+      await unlink(legacy)
+      warnings.push(
+        `Removed legacy character file at '${entry.name}' (now lives in a tier subfolder).`
+      )
+    } catch (err) {
+      warnings.push(
+        `Failed to remove legacy character file '${entry.name}': ${(err as Error).message}`
+      )
+    }
   }
 }
 

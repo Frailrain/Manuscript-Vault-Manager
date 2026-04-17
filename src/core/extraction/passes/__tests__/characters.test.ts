@@ -47,7 +47,7 @@ function makeCtx(overrides: Partial<ExtractionContext> = {}): ExtractionContext 
 }
 
 describe('charactersPass schema', () => {
-  it('declares tier as a required enum of main/secondary/minor', () => {
+  it('declares tier as a required enum of main/secondary/minor/mentioned', () => {
     const ctx = makeCtx()
     const schema = charactersPass.buildSchema!(ctx) as unknown as {
       properties: {
@@ -61,7 +61,12 @@ describe('charactersPass schema', () => {
     }
     const item = schema.properties.characters.items
     expect(item.required).toContain('tier')
-    expect(item.properties.tier?.enum).toEqual(['main', 'secondary', 'minor'])
+    expect(item.properties.tier?.enum).toEqual([
+      'main',
+      'secondary',
+      'minor',
+      'mentioned'
+    ])
   })
 
   it('includes chapterActivity as a required string property', () => {
@@ -93,6 +98,17 @@ describe('charactersPass system prompt', () => {
     expect(systemPrompt).toContain('secondary')
     expect(systemPrompt).toContain('minor')
     expect(systemPrompt.toLowerCase()).toContain('when in doubt')
+  })
+
+  it('covers all four tiers including "mentioned" with distinguishing criteria', () => {
+    const ctx = makeCtx()
+    const { systemPrompt } = charactersPass.buildPrompts(makeChapter(), ctx)
+    expect(systemPrompt).toContain('**main**')
+    expect(systemPrompt).toContain('**secondary**')
+    expect(systemPrompt).toContain('**minor**')
+    expect(systemPrompt).toContain('**mentioned**')
+    expect(systemPrompt).toContain('never appears on-page')
+    expect(systemPrompt).toContain('minor and mentioned')
   })
 
   it('explains the split between description (identity) and chapterActivity', () => {
