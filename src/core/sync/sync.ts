@@ -15,6 +15,7 @@ import type {
   TokenUsage
 } from '../../shared/types'
 import { ExtractionError } from '../extraction/errors'
+import type { ExtractionFieldDefs } from '../extraction/engine'
 import { createProvider } from '../extraction/providers'
 import { generateVault } from '../vault/generator'
 import { diffProject } from './diff'
@@ -40,6 +41,11 @@ export async function syncProject(
   let filesWritten = 0
   let filesPreserved = 0
   let changes: ChapterChange[] = []
+
+  const fieldDefs: ExtractionFieldDefs = {
+    customCharacterFields: providerConfig.customCharacterFields ?? [],
+    customLocationFields: providerConfig.customLocationFields ?? []
+  }
 
   const onProgress = options.onProgress
   const emit = (phase: SyncPhase, extra: Partial<SyncProgress> = {}): void => {
@@ -121,7 +127,8 @@ export async function syncProject(
   const priorRebuild = rebuildMergedState(
     priorContributions,
     priorChapterExtractions,
-    project.chapters
+    project.chapters,
+    fieldDefs
   )
 
   let newContributions: ChapterContribution[] = []
@@ -156,6 +163,7 @@ export async function syncProject(
             characters: cloneCharacters(priorRebuild.characters),
             locations: cloneLocations(priorRebuild.locations)
           },
+          fieldDefs,
           onProgress: (p) => {
             emit('extracting', {
               currentChapter: p.currentChapter,
@@ -197,7 +205,8 @@ export async function syncProject(
   const rebuilt = rebuildMergedState(
     mergedContributions,
     mergedChapterExtractions,
-    project.chapters
+    project.chapters,
+    fieldDefs
   )
   warnings.push(...rebuilt.warnings)
 
@@ -229,7 +238,12 @@ export async function syncProject(
       vaultPath,
       {
         novelTitle: options.novelTitle,
-        clean: false
+        clean: false,
+        genrePresetId: options.genrePresetId,
+        characterFields: fieldDefs.customCharacterFields,
+        locationFields: fieldDefs.customLocationFields,
+        characterSectionLabel: options.characterSectionLabel,
+        locationSectionLabel: options.locationSectionLabel
       }
     )
     filesWritten = vaultResult.filesWritten

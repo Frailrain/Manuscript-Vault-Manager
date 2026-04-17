@@ -115,7 +115,9 @@ export async function generateVault(
       characterResolver,
       chapterFilenames,
       warnings,
-      onProgress
+      onProgress,
+      characterFields: options.characterFields,
+      characterSectionLabel: options.characterSectionLabel
     })
     filesWritten += characterStats.filesWritten
     filesPreserved += characterStats.filesPreserved
@@ -125,7 +127,9 @@ export async function generateVault(
       locationFilenames,
       chapterFilenames,
       warnings,
-      onProgress
+      onProgress,
+      locationFields: options.locationFields,
+      locationSectionLabel: options.locationSectionLabel
     })
     filesWritten += locationStats.filesWritten
     filesPreserved += locationStats.filesPreserved
@@ -142,7 +146,8 @@ export async function generateVault(
       characterFilenames,
       locationFilenames,
       chapterFilenames,
-      onProgress
+      onProgress,
+      genrePresetId: options.genrePresetId
     })
     filesWritten += 1
 

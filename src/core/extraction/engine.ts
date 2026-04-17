@@ -1,3 +1,4 @@
+import type { GenreFieldDef } from '../../shared/presets'
 import type {
   ChapterContribution,
   ChapterExtraction,
@@ -64,13 +65,25 @@ export async function runExtraction(
       err
     )
   }
-  return runExtractionWithProvider(project, provider, options)
+  return runExtractionWithProvider(project, provider, options, {
+    customCharacterFields: providerConfig.customCharacterFields ?? [],
+    customLocationFields: providerConfig.customLocationFields ?? []
+  })
+}
+
+export interface ExtractionFieldDefs {
+  customCharacterFields: GenreFieldDef[]
+  customLocationFields: GenreFieldDef[]
 }
 
 export async function runExtractionWithProvider(
   project: ScrivenerProject,
   provider: LLMProvider,
-  options: RunExtractionOptions = {}
+  options: RunExtractionOptions = {},
+  fieldDefs: ExtractionFieldDefs = {
+    customCharacterFields: [],
+    customLocationFields: []
+  }
 ): Promise<ExtractionResult> {
   const onProgress = options.onProgress ?? noop
   const warnings: string[] = []
@@ -149,9 +162,8 @@ export async function runExtractionWithProvider(
         provider,
         { chapters, characters, locations },
         tokenUsage,
-        { emitPass: emitProgress }
+        { emitPass: emitProgress, fieldDefs }
       )
-
       warnings.push(...outcome.chapterWarnings)
       if (outcome.skipped) continue
 
@@ -221,6 +233,7 @@ export interface ExtractSingleChapterPriorContext {
 
 export interface ExtractSingleChapterOptions {
   emitPass?: (pass: ExtractionPass | null) => void
+  fieldDefs?: ExtractionFieldDefs
 }
 
 export type ExtractSingleChapterOutcome =
@@ -252,13 +265,18 @@ export async function extractSingleChapter(
   options: ExtractSingleChapterOptions = {}
 ): Promise<ExtractSingleChapterOutcome> {
   const emitPass = options.emitPass ?? noopPass
+  const fieldDefs = options.fieldDefs ?? {
+    customCharacterFields: [],
+    customLocationFields: []
+  }
   const chapterWarnings: string[] = []
   const ctx = buildContext(
     project,
     priorContext.chapters,
     priorContext.characters,
     priorContext.locations,
-    chapter
+    chapter,
+    fieldDefs
   )
 
   const chapterExtraction: ChapterExtraction = {
@@ -288,7 +306,12 @@ export async function extractSingleChapter(
       emitPass,
       (data) => {
         characterDeltas.push(...data.characters)
-        mergeCharacters(priorContext.characters, data.characters, chapter.order)
+        mergeCharacters(
+          priorContext.characters,
+          data.characters,
+          chapter.order,
+          fieldDefs.customCharacterFields
+        )
       }
     )
     await runPass(
@@ -301,7 +324,12 @@ export async function extractSingleChapter(
       emitPass,
       (data) => {
         locationDeltas.push(...data.locations)
-        mergeLocations(priorContext.locations, data.locations, chapter.order)
+        mergeLocations(
+          priorContext.locations,
+          data.locations,
+          chapter.order,
+          fieldDefs.customLocationFields
+        )
       }
     )
     await runPass(
@@ -348,7 +376,8 @@ export async function extractSingleChapter(
       characterDeltas,
       locationDeltas,
       timelineDeltas,
-      continuityDeltas
+      continuityDeltas,
+      fieldDefs
     )
   }
 
@@ -395,17 +424,18 @@ async function runPass<T>(
 ): Promise<void> {
   emitProgress(pass.name)
   const prompts = pass.buildPrompts(chapter, ctx)
+  const schema = pass.buildSchema ? pass.buildSchema(ctx) : pass.schema
   try {
     const result = await provider.callWithSchema<unknown>({
       systemPrompt: prompts.systemPrompt,
       userPrompt: prompts.userPrompt,
       toolName: pass.toolName,
       toolDescription: pass.toolDescription,
-      toolInputSchema: pass.schema
+      toolInputSchema: schema
     })
     tokenUsage.inputTokens += result.usage.inputTokens
     tokenUsage.outputTokens += result.usage.outputTokens
-    const validated = pass.validate(result.data)
+    const validated = pass.validate(result.data, ctx)
     onSuccess(validated)
   } catch (err) {
     // Auth errors are unrecoverable — rethrow so the caller can bail.
@@ -429,7 +459,8 @@ async function runChapterInPieces(
   characterDeltas: ExtractedCharacterDelta[],
   locationDeltas: ExtractedLocationDelta[],
   timelineDeltas: TimelineEventDelta[],
-  continuityDeltas: ContinuityIssueDelta[]
+  continuityDeltas: ContinuityIssueDelta[],
+  fieldDefs: ExtractionFieldDefs
 ): Promise<void> {
   const sceneSummaries: string[] = []
   const charSet = new Set<string>()
@@ -454,7 +485,12 @@ async function runChapterInPieces(
       emitProgress,
       (data) => {
         characterDeltas.push(...data.characters)
-        mergeCharacters(characters, data.characters, chapter.order)
+        mergeCharacters(
+          characters,
+          data.characters,
+          chapter.order,
+          fieldDefs.customCharacterFields
+        )
       }
     )
     await runPass(
@@ -467,7 +503,12 @@ async function runChapterInPieces(
       emitProgress,
       (data) => {
         locationDeltas.push(...data.locations)
-        mergeLocations(locations, data.locations, chapter.order)
+        mergeLocations(
+          locations,
+          data.locations,
+          chapter.order,
+          fieldDefs.customLocationFields
+        )
       }
     )
     await runPass(
@@ -512,7 +553,8 @@ function buildContext(
   priorChapterExtractions: ChapterExtraction[],
   characters: ExtractedCharacter[],
   locations: ExtractedLocation[],
-  currentChapter: ScrivenerChapter
+  currentChapter: ScrivenerChapter,
+  fieldDefs: ExtractionFieldDefs
 ): ExtractionContext {
   const priorCharacters = characters.map((c) => ({
     name: c.name,
@@ -553,7 +595,9 @@ function buildContext(
     priorChapterSummaries,
     priorChapterHeadlines,
     currentChapterOrder: currentChapter.order,
-    totalChapters: project.chapters.length
+    totalChapters: project.chapters.length,
+    customCharacterFields: fieldDefs.customCharacterFields,
+    customLocationFields: fieldDefs.customLocationFields
   }
 }
 

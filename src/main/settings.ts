@@ -10,6 +10,9 @@ const DEFAULTS: StoredSettings = {
   apiKey: '',
   model: 'claude-haiku-4-5-20251001',
   baseURL: '',
+  genrePresetId: 'none',
+  characterFields: [],
+  locationFields: [],
   theme: 'dark'
 }
 

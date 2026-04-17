@@ -86,7 +86,8 @@ export function buildMiniExtraction(): ExtractionResult {
           { name: 'The Archivist', relationship: 'adversary, withholds information' }
         ],
         firstAppearanceChapter: 1,
-        appearances: [1, 2, 3]
+        appearances: [1, 2, 3],
+        customFields: {}
       },
       {
         name: 'Captain Vorn',
@@ -97,7 +98,8 @@ export function buildMiniExtraction(): ExtractionResult {
           { name: 'Elara', relationship: 'ward and protégée' }
         ],
         firstAppearanceChapter: 1,
-        appearances: [1, 2]
+        appearances: [1, 2],
+        customFields: {}
       },
       {
         name: 'The Archivist',
@@ -106,7 +108,8 @@ export function buildMiniExtraction(): ExtractionResult {
         role: '',
         relationships: [],
         firstAppearanceChapter: 3,
-        appearances: [3]
+        appearances: [3],
+        customFields: {}
       }
     ],
     locations: [
@@ -115,7 +118,8 @@ export function buildMiniExtraction(): ExtractionResult {
         description: 'An ancient school of mages built from white granite.',
         significance: 'Where Elara is trained.',
         firstAppearanceChapter: 1,
-        appearances: [1]
+        appearances: [1],
+        customFields: {}
       },
       {
         name: 'The Silver Tower',
@@ -123,7 +127,8 @@ export function buildMiniExtraction(): ExtractionResult {
           '(Ch 3): A tall spire glinting in the afternoon sun.\n\n(Ch 3): Its upper floors hold forbidden books.',
         significance: 'Home of the Archivist and the banned texts.',
         firstAppearanceChapter: 3,
-        appearances: [3]
+        appearances: [3],
+        customFields: {}
       }
     ],
     timeline: [

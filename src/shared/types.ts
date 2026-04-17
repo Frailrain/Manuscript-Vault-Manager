@@ -1,3 +1,7 @@
+import type { GenreFieldDef } from './presets'
+
+export type CustomFieldValue = string | number | string[]
+
 export interface AppInfo {
   name: 'Manuscript Vault Manager'
   shorthand: 'mvm'
@@ -45,6 +49,10 @@ export interface LLMProviderConfig {
   baseURL?: string
   /** Max output tokens per call. Defaults to 4096. */
   maxTokens?: number
+  /** Genre-preset or custom character fields to extract. */
+  customCharacterFields?: GenreFieldDef[]
+  /** Genre-preset or custom location fields to extract. */
+  customLocationFields?: GenreFieldDef[]
 }
 
 export interface ExtractedCharacter {
@@ -55,6 +63,8 @@ export interface ExtractedCharacter {
   relationships: Array<{ name: string; relationship: string }>
   firstAppearanceChapter: number
   appearances: number[]
+  /** Genre-preset extracted fields, keyed by field.key. Empty if none configured. */
+  customFields: Record<string, CustomFieldValue>
 }
 
 export interface ExtractedLocation {
@@ -63,6 +73,8 @@ export interface ExtractedLocation {
   significance: string
   firstAppearanceChapter: number
   appearances: number[]
+  /** Genre-preset extracted fields, keyed by field.key. Empty if none configured. */
+  customFields: Record<string, CustomFieldValue>
 }
 
 export interface TimelineEvent {
@@ -87,6 +99,8 @@ export interface ExtractedCharacterDelta {
   role: string
   relationships: Array<{ name: string; relationship: string }>
   isNew: boolean
+  /** Genre-preset extracted fields, keyed by field.key. */
+  customFields?: Record<string, CustomFieldValue>
 }
 
 export interface ExtractedLocationDelta {
@@ -94,6 +108,8 @@ export interface ExtractedLocationDelta {
   description: string
   significance: string
   isNew: boolean
+  /** Genre-preset extracted fields, keyed by field.key. */
+  customFields?: Record<string, CustomFieldValue>
 }
 
 export interface TimelineEventDelta {
@@ -171,6 +187,16 @@ export interface VaultGeneratorOptions {
   /** Wipe Chapters/, Characters/, Locations/ before writing. Default false. */
   clean?: boolean
   onProgress?: (progress: VaultProgress) => void
+  /** Active genre preset id — affects dashboard formatting. */
+  genrePresetId?: string
+  /** Per-character fields to render in the Tracking callout + frontmatter. */
+  characterFields?: GenreFieldDef[]
+  /** Per-location fields to render in the Tracking callout + frontmatter. */
+  locationFields?: GenreFieldDef[]
+  /** Callout title for the character Tracking block. Empty string = omit. */
+  characterSectionLabel?: string
+  /** Callout title for the location Tracking block. Empty string = omit. */
+  locationSectionLabel?: string
 }
 
 export type VaultPhase =
@@ -240,6 +266,12 @@ export interface SyncOptions {
   /** If true, don't call the LLM or write to disk. Just report what would happen. */
   dryRun?: boolean
   onProgress?: (progress: SyncProgress) => void
+  /** Active genre preset id — affects dashboard formatting. */
+  genrePresetId?: string
+  /** Callout title for the character Tracking block. */
+  characterSectionLabel?: string
+  /** Callout title for the location Tracking block. */
+  locationSectionLabel?: string
 }
 
 export type SyncPhase =
@@ -286,6 +318,9 @@ export interface AppSettings {
   apiKey: string
   model: string
   baseURL: string
+  genrePresetId: string
+  characterFields: GenreFieldDef[]
+  locationFields: GenreFieldDef[]
 }
 
 export interface StoredSettings extends AppSettings {

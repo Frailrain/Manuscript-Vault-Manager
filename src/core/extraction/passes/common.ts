@@ -1,3 +1,4 @@
+import type { GenreFieldDef } from '../../../shared/presets'
 import type { ScrivenerChapter } from '../../../shared/types'
 import type { JSONSchema } from '../providers'
 
@@ -19,6 +20,8 @@ export interface ExtractionContext {
   priorChapterHeadlines: Array<{ order: number; title: string }>
   currentChapterOrder: number
   totalChapters: number
+  customCharacterFields: GenreFieldDef[]
+  customLocationFields: GenreFieldDef[]
 }
 
 export interface PassRunner<T> {
@@ -29,8 +32,11 @@ export interface PassRunner<T> {
   ): { systemPrompt: string; userPrompt: string }
   toolName: string
   toolDescription: string
+  /** Fallback schema used when buildSchema is not provided. */
   schema: JSONSchema
-  validate(data: unknown): T
+  /** Optional ctx-aware schema builder. When present, overrides `schema`. */
+  buildSchema?(ctx: ExtractionContext): JSONSchema
+  validate(data: unknown, ctx?: ExtractionContext): T
 }
 
 export const SCENE_BREAK = '\n\n---SCENE BREAK---\n\n'

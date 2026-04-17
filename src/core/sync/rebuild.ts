@@ -1,3 +1,4 @@
+import type { GenreFieldDef } from '../../shared/presets'
 import type {
   ChapterContribution,
   ChapterExtraction,
@@ -14,6 +15,11 @@ import {
   mergeTimeline,
   sortTimeline
 } from '../extraction/merge'
+
+export interface RebuildFieldDefs {
+  customCharacterFields: GenreFieldDef[]
+  customLocationFields: GenreFieldDef[]
+}
 
 export interface RebuiltMergedState {
   chapters: ChapterExtraction[]
@@ -38,7 +44,11 @@ export interface RebuiltMergedState {
 export function rebuildMergedState(
   contributions: ChapterContribution[],
   chapterExtractions: ChapterExtraction[],
-  currentChapters: ScrivenerChapter[]
+  currentChapters: ScrivenerChapter[],
+  fieldDefs: RebuildFieldDefs = {
+    customCharacterFields: [],
+    customLocationFields: []
+  }
 ): RebuiltMergedState {
   const warnings: string[] = []
   const orderByUuid = new Map(
@@ -70,8 +80,18 @@ export function rebuildMergedState(
   const continuityIssues: ContinuityIssue[] = []
 
   for (const { contribution, currentOrder } of alignedContributions) {
-    mergeCharacters(characters, contribution.characterDeltas, currentOrder)
-    mergeLocations(locations, contribution.locationDeltas, currentOrder)
+    mergeCharacters(
+      characters,
+      contribution.characterDeltas,
+      currentOrder,
+      fieldDefs.customCharacterFields
+    )
+    mergeLocations(
+      locations,
+      contribution.locationDeltas,
+      currentOrder,
+      fieldDefs.customLocationFields
+    )
     mergeTimeline(timeline, contribution.timelineEvents, currentOrder)
     mergeContinuity(continuityIssues, contribution.continuityIssues, currentOrder)
   }

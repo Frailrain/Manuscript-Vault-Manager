@@ -22,6 +22,7 @@ export interface DashboardWriteContext {
   locationFilenames: Map<string, string>
   chapterFilenames: Map<number, string>
   onProgress?: (progress: VaultProgress) => void
+  genrePresetId?: string
 }
 
 export async function writeDashboard(
@@ -72,8 +73,9 @@ function buildDashboardFile(
   } else {
     for (const char of sortByNameInsensitive(extraction.characters)) {
       const filename = ctx.characterFilenames.get(char.name) ?? char.name
+      const inline = characterInlineSuffix(char, ctx.genrePresetId)
       sections.push(
-        `- [[${filename}]] (${char.appearances.length} ${pluralize(char.appearances.length, 'chapter')})`
+        `- [[${filename}]]${inline} (${char.appearances.length} ${pluralize(char.appearances.length, 'chapter')})`
       )
     }
   }
@@ -157,6 +159,24 @@ function sortByNameInsensitive<T extends ExtractedCharacter | ExtractedLocation>
   return entities
     .slice()
     .sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()))
+}
+
+function characterInlineSuffix(
+  char: ExtractedCharacter,
+  genrePresetId: string | undefined
+): string {
+  if (genrePresetId !== 'litrpg') return ''
+  const level = char.customFields.level
+  const klass = char.customFields.class
+  const parts: string[] = []
+  if (typeof level === 'number' && Number.isFinite(level)) {
+    parts.push(`Level ${level}`)
+  }
+  if (typeof klass === 'string' && klass.trim().length > 0) {
+    parts.push(klass.trim())
+  }
+  if (parts.length === 0) return ''
+  return ` — ${parts.join(' ')}`
 }
 
 function summaryPreview(summary: string): string {

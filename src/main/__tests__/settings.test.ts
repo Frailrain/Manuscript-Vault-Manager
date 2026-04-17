@@ -96,7 +96,10 @@ describe('settings', () => {
       apiKey: 'k',
       model: 'gpt-5',
       baseURL: 'https://api.openai.com/v1',
-      theme: 'light'
+      theme: 'light',
+      genrePresetId: 'none',
+      characterFields: [],
+      locationFields: []
     })
   })
 

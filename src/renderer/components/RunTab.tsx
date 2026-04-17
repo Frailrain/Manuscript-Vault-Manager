@@ -1,8 +1,11 @@
 import { useMemo } from 'react'
 
+import { findPreset } from '../../shared/presets'
 import type {
   ChapterChange,
-  LLMProviderConfig
+  LLMProviderConfig,
+  SyncOptions,
+  VaultGeneratorOptions
 } from '../../shared/types'
 import { useAppStore } from '../stores/appStore'
 import type { RunResult } from '../stores/appStore'
@@ -48,7 +51,37 @@ function buildProviderConfig(
     model: settings.model,
     ...(settings.providerKind === 'openai-compatible'
       ? { baseURL: settings.baseURL }
-      : {})
+      : {}),
+    customCharacterFields: settings.characterFields,
+    customLocationFields: settings.locationFields
+  }
+}
+
+function buildVaultOptions(
+  settings: ReturnType<typeof useAppStore.getState>['settings'],
+  clean: boolean
+): VaultGeneratorOptions {
+  const preset = findPreset(settings.genrePresetId)
+  return {
+    novelTitle: settings.novelTitle,
+    clean,
+    genrePresetId: settings.genrePresetId,
+    characterFields: settings.characterFields,
+    locationFields: settings.locationFields,
+    characterSectionLabel: preset?.characterSectionLabel ?? 'Tracking',
+    locationSectionLabel: preset?.locationSectionLabel ?? 'Tracking'
+  }
+}
+
+function buildSyncOptions(
+  settings: ReturnType<typeof useAppStore.getState>['settings']
+): SyncOptions {
+  const preset = findPreset(settings.genrePresetId)
+  return {
+    novelTitle: settings.novelTitle,
+    genrePresetId: settings.genrePresetId,
+    characterSectionLabel: preset?.characterSectionLabel ?? 'Tracking',
+    locationSectionLabel: preset?.locationSectionLabel ?? 'Tracking'
   }
 }
 
@@ -87,7 +120,7 @@ export function RunTab(): JSX.Element {
         extraction,
         scrivenerProject: project,
         vaultPath: settings.vaultPath,
-        options: { novelTitle: settings.novelTitle, clean: true }
+        options: buildVaultOptions(settings, true)
       })
       await window.mvm.sync.writeInitialManifest({
         project,
@@ -127,7 +160,7 @@ export function RunTab(): JSX.Element {
         project,
         vaultPath: settings.vaultPath,
         providerConfig: buildProviderConfig(settings),
-        options: { novelTitle: settings.novelTitle }
+        options: buildSyncOptions(settings)
       })
       setMode('completed')
       setResult({

@@ -1,6 +1,13 @@
 import { useState } from 'react'
 
+import {
+  cloneFields,
+  fieldsMatchPreset,
+  findPreset,
+  GENRE_PRESETS
+} from '../../shared/presets'
 import { useAppStore } from '../stores/appStore'
+import { FieldEditor } from './FieldEditor'
 import { FieldGroup } from './FieldGroup'
 import { PathPicker } from './PathPicker'
 import { PrimaryButton } from './PrimaryButton'
@@ -53,6 +60,31 @@ export function SettingsTab(): JSX.Element {
     }
   }
 
+  function handlePresetChange(nextId: string): void {
+    const preset = findPreset(nextId)
+    if (!preset) return
+    const currentPreset = findPreset(settings.genrePresetId)
+    const customized = currentPreset
+      ? !fieldsMatchPreset(
+          settings.characterFields,
+          settings.locationFields,
+          currentPreset
+        )
+      : settings.characterFields.length > 0 ||
+        settings.locationFields.length > 0
+    if (customized && nextId !== settings.genrePresetId) {
+      const ok = window.confirm(
+        `Switching presets will replace your custom fields with the ${preset.name} defaults. Continue?`
+      )
+      if (!ok) return
+    }
+    setSettings({
+      genrePresetId: nextId,
+      characterFields: cloneFields(preset.characterFields),
+      locationFields: cloneFields(preset.locationFields)
+    })
+  }
+
   return (
     <div className="mx-auto max-w-2xl px-6 py-8">
       <h2 className="mb-6 text-2xl font-semibold text-neutral-900 dark:text-neutral-100">
@@ -94,6 +126,49 @@ export function SettingsTab(): JSX.Element {
           placeholder="My Fantasy Epic"
           className={INPUT_CLASSES}
         />
+      </FieldGroup>
+
+      <FieldGroup
+        label="Tracked Information"
+        helpText={
+          findPreset(settings.genrePresetId)?.tagline ??
+          'Pick a genre preset or define your own per-character / per-location fields.'
+        }
+      >
+        <select
+          aria-label="Genre preset"
+          value={settings.genrePresetId}
+          onChange={(e) => handlePresetChange(e.target.value)}
+          className={`${SELECT_CLASSES} mb-4`}
+        >
+          {GENRE_PRESETS.map((p) => (
+            <option key={p.id} value={p.id}>
+              {p.name}
+            </option>
+          ))}
+        </select>
+        <div className="space-y-4">
+          <div>
+            <h4 className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-700 dark:text-neutral-300">
+              Character fields
+            </h4>
+            <FieldEditor
+              entityLabel="character"
+              fields={settings.characterFields}
+              onChange={(next) => setSettings({ characterFields: next })}
+            />
+          </div>
+          <div>
+            <h4 className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-700 dark:text-neutral-300">
+              Location fields
+            </h4>
+            <FieldEditor
+              entityLabel="location"
+              fields={settings.locationFields}
+              onChange={(next) => setSettings({ locationFields: next })}
+            />
+          </div>
+        </div>
       </FieldGroup>
 
       <FieldGroup label="LLM Provider">

@@ -1,6 +1,8 @@
+import type { GenreFieldDef } from '../../shared/presets'
 import type {
   ChapterExtraction,
   ContinuityIssue,
+  CustomFieldValue,
   ExtractedCharacter,
   ExtractedLocation,
   TimelineEvent
@@ -11,7 +13,8 @@ import type { ContinuityPassResult, TimelinePassResult } from './passes'
 export function mergeCharacters(
   running: ExtractedCharacter[],
   fromChapter: ExtractedCharacterDelta[],
-  chapterOrder: number
+  chapterOrder: number,
+  fieldDefs: GenreFieldDef[] = []
 ): void {
   for (const delta of fromChapter) {
     const existing = findMatchingCharacter(running, delta)
@@ -23,6 +26,11 @@ export function mergeCharacters(
         existing.appearances.push(chapterOrder)
       }
       if (delta.role && !existing.role) existing.role = delta.role
+      existing.customFields = mergeCustomFields(
+        existing.customFields,
+        delta.customFields,
+        fieldDefs
+      )
     } else {
       running.push({
         name: delta.name,
@@ -31,7 +39,8 @@ export function mergeCharacters(
         role: delta.role,
         relationships: dedupeRelationships(delta.relationships),
         firstAppearanceChapter: chapterOrder,
-        appearances: [chapterOrder]
+        appearances: [chapterOrder],
+        customFields: mergeCustomFields({}, delta.customFields, fieldDefs)
       })
     }
   }
@@ -40,7 +49,8 @@ export function mergeCharacters(
 export function mergeLocations(
   running: ExtractedLocation[],
   fromChapter: ExtractedLocationDelta[],
-  chapterOrder: number
+  chapterOrder: number,
+  fieldDefs: GenreFieldDef[] = []
 ): void {
   for (const delta of fromChapter) {
     const existing = running.find(
@@ -54,13 +64,19 @@ export function mergeLocations(
       if (!existing.appearances.includes(chapterOrder)) {
         existing.appearances.push(chapterOrder)
       }
+      existing.customFields = mergeCustomFields(
+        existing.customFields,
+        delta.customFields,
+        fieldDefs
+      )
     } else {
       running.push({
         name: delta.name,
         description: delta.description,
         significance: delta.significance,
         firstAppearanceChapter: chapterOrder,
-        appearances: [chapterOrder]
+        appearances: [chapterOrder],
+        customFields: mergeCustomFields({}, delta.customFields, fieldDefs)
       })
     }
   }
@@ -121,6 +137,46 @@ export function dedupeByNormalizedName<T extends { name: string }>(
     out.push(item)
   }
   return out
+}
+
+/**
+ * Merge per-field updates from `incoming` into `existing` following the
+ * per-type rules:
+ *   - `list`: union, dedupe, preserve insertion order.
+ *   - `number`: last-write-wins.
+ *   - `text`: last non-empty string wins (trimmed).
+ * Unknown keys (not in fieldDefs) are ignored.
+ */
+export function mergeCustomFields(
+  existing: Record<string, CustomFieldValue>,
+  incoming: Record<string, CustomFieldValue> | undefined,
+  fieldDefs: GenreFieldDef[]
+): Record<string, CustomFieldValue> {
+  if (!incoming) return { ...existing }
+  const result: Record<string, CustomFieldValue> = { ...existing }
+  for (const def of fieldDefs) {
+    const value = incoming[def.key]
+    if (value === undefined || value === null) continue
+    if (def.type === 'list' && Array.isArray(value)) {
+      const priorList = Array.isArray(result[def.key])
+        ? (result[def.key] as string[])
+        : []
+      const merged = [...priorList]
+      for (const item of value) {
+        if (typeof item === 'string' && !merged.includes(item)) merged.push(item)
+      }
+      if (merged.length > 0) result[def.key] = merged
+    } else if (def.type === 'number' && typeof value === 'number') {
+      if (Number.isFinite(value)) result[def.key] = value
+    } else if (
+      def.type === 'text' &&
+      typeof value === 'string' &&
+      value.trim().length > 0
+    ) {
+      result[def.key] = value.trim()
+    }
+  }
+  return result
 }
 
 function findMatchingCharacter(

@@ -1,5 +1,6 @@
 import { join } from 'node:path'
 
+import type { GenreFieldDef } from '../../shared/presets'
 import type {
   ExtractedCharacter,
   ExtractionResult,
@@ -12,6 +13,10 @@ import {
 } from './descriptions'
 import { buildFrontmatter } from './frontmatter'
 import { stripHeadingMarkers } from './sanitize'
+import {
+  applyCustomFieldsToFrontmatter,
+  renderTrackingCallout
+} from './tracking'
 import { writeManagedFile } from './writeManaged'
 import { chapterWikiLink, type NameResolver } from './wikilinks'
 
@@ -22,6 +27,8 @@ export interface CharacterWriteContext {
   chapterFilenames: Map<number, string>
   warnings: string[]
   onProgress?: (progress: VaultProgress) => void
+  characterFields?: GenreFieldDef[]
+  characterSectionLabel?: string
 }
 
 export interface CharacterWriteStats {
@@ -62,6 +69,7 @@ function buildCharacterFile(
   character: ExtractedCharacter,
   ctx: CharacterWriteContext
 ): string {
+  const fieldDefs = ctx.characterFields ?? []
   const fmFields: Record<string, unknown> = {
     type: 'character',
     name: character.name
@@ -70,6 +78,7 @@ function buildCharacterFile(
   fmFields.role = character.role || null
   fmFields.firstAppearance = character.firstAppearanceChapter
   fmFields.appearances = [...character.appearances]
+  applyCustomFieldsToFrontmatter(fmFields, fieldDefs, character.customFields)
 
   const frontmatter = buildFrontmatter(fmFields)
 
@@ -77,6 +86,12 @@ function buildCharacterFile(
   const descriptionSection = renderDescriptionSection(character.description)
   const relationshipsSection = renderRelationshipsSection(character, ctx)
   const appearancesSection = renderAppearancesSection(character, ctx)
+
+  const trackingCallout = renderTrackingCallout(
+    ctx.characterSectionLabel ?? '',
+    fieldDefs,
+    character.customFields
+  )
 
   const lines: string[] = [
     frontmatter.trimEnd(),
@@ -92,14 +107,19 @@ function buildCharacterFile(
     '## Relationships',
     '',
     relationshipsSection,
-    '',
+    ''
+  ]
+  if (trackingCallout) {
+    lines.push(trackingCallout, '')
+  }
+  lines.push(
     '## Appearances',
     '',
     appearancesSection,
     '',
     "## Writer's Notes",
     ''
-  ]
+  )
 
   return lines.join('\n') + '\n'
 }

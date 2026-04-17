@@ -10,7 +10,10 @@ import type {
 } from '../../shared/types'
 import { estimateCost } from '../extraction/costs'
 import { ExtractionError } from '../extraction/errors'
-import { extractSingleChapter } from '../extraction/engine'
+import {
+  extractSingleChapter,
+  type ExtractionFieldDefs
+} from '../extraction/engine'
 import { LLMProviderError, type LLMProvider } from '../extraction/providers'
 
 export interface ReExtractPriorState {
@@ -30,6 +33,7 @@ export interface ReExtractProgress {
 export interface ReExtractOptions {
   priorState: ReExtractPriorState
   onProgress?: (progress: ReExtractProgress) => void
+  fieldDefs?: ExtractionFieldDefs
 }
 
 export interface ReExtractResult {
@@ -85,7 +89,7 @@ export async function reExtractChapters(
         provider,
         options.priorState,
         tokenUsage,
-        { emitPass }
+        { emitPass, fieldDefs: options.fieldDefs }
       )
       warnings.push(...outcome.chapterWarnings)
       if (outcome.skipped) continue

@@ -14,7 +14,10 @@ export const DEFAULT_SETTINGS: AppSettings = {
   providerKind: 'anthropic',
   apiKey: '',
   model: 'claude-haiku-4-5-20251001',
-  baseURL: ''
+  baseURL: '',
+  genrePresetId: 'none',
+  characterFields: [],
+  locationFields: []
 }
 
 export type RunMode =

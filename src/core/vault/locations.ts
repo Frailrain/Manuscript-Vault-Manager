@@ -1,5 +1,6 @@
 import { join } from 'node:path'
 
+import type { GenreFieldDef } from '../../shared/presets'
 import type {
   ExtractedLocation,
   ExtractionResult,
@@ -12,6 +13,10 @@ import {
 } from './descriptions'
 import { buildFrontmatter } from './frontmatter'
 import { stripHeadingMarkers } from './sanitize'
+import {
+  applyCustomFieldsToFrontmatter,
+  renderTrackingCallout
+} from './tracking'
 import { writeManagedFile } from './writeManaged'
 import { chapterWikiLink } from './wikilinks'
 
@@ -21,6 +26,8 @@ export interface LocationWriteContext {
   chapterFilenames: Map<number, string>
   warnings: string[]
   onProgress?: (progress: VaultProgress) => void
+  locationFields?: GenreFieldDef[]
+  locationSectionLabel?: string
 }
 
 export interface LocationWriteStats {
@@ -61,16 +68,26 @@ function buildLocationFile(
   location: ExtractedLocation,
   ctx: LocationWriteContext
 ): string {
-  const frontmatter = buildFrontmatter({
+  const fieldDefs = ctx.locationFields ?? []
+  const fmFields: Record<string, unknown> = {
     type: 'location',
     name: location.name,
     firstAppearance: location.firstAppearanceChapter,
     appearances: [...location.appearances]
-  })
+  }
+  applyCustomFieldsToFrontmatter(fmFields, fieldDefs, location.customFields)
+
+  const frontmatter = buildFrontmatter(fmFields)
 
   const atAGlance = renderAtAGlance(location)
   const descriptionSection = renderDescriptionSection(location.description)
   const appearancesSection = renderAppearancesSection(location, ctx)
+
+  const trackingCallout = renderTrackingCallout(
+    ctx.locationSectionLabel ?? '',
+    fieldDefs,
+    location.customFields
+  )
 
   const lines: string[] = [
     frontmatter.trimEnd(),
@@ -82,14 +99,19 @@ function buildLocationFile(
     '## Description',
     '',
     descriptionSection,
-    '',
+    ''
+  ]
+  if (trackingCallout) {
+    lines.push(trackingCallout, '')
+  }
+  lines.push(
     '## Appearances',
     '',
     appearancesSection,
     '',
     "## Writer's Notes",
     ''
-  ]
+  )
 
   return lines.join('\n') + '\n'
 }
