@@ -100,7 +100,7 @@ describe('generateVault', () => {
       novelTitle: 'Mini Test Novel'
     })
     const elara = await readFile(
-      join(vaultPath, 'Characters', 'Main', 'Elara.md'),
+      join(vaultPath, 'Characters', '1 - Main', 'Elara.md'),
       'utf8'
     )
     expect(elara).toContain('aliases: [ "El", "The Scholar" ]')
@@ -114,7 +114,7 @@ describe('generateVault', () => {
       novelTitle: 'Mini Test Novel'
     })
     const vorn = await readFile(
-      join(vaultPath, 'Characters', 'Secondary', 'Captain Vorn.md'),
+      join(vaultPath, 'Characters', '2 - Secondary', 'Captain Vorn.md'),
       'utf8'
     )
     expect(vorn).not.toMatch(/^aliases:/m)
@@ -125,7 +125,7 @@ describe('generateVault', () => {
       novelTitle: 'Mini Test Novel'
     })
     const elara = await readFile(
-      join(vaultPath, 'Characters', 'Main', 'Elara.md'),
+      join(vaultPath, 'Characters', '1 - Main', 'Elara.md'),
       'utf8'
     )
     expect(elara).toMatch(
@@ -138,7 +138,7 @@ describe('generateVault', () => {
       novelTitle: 'Mini Test Novel'
     })
     const elara = await readFile(
-      join(vaultPath, 'Characters', 'Main', 'Elara.md'),
+      join(vaultPath, 'Characters', '1 - Main', 'Elara.md'),
       'utf8'
     )
     expect(elara).toContain(
@@ -158,7 +158,7 @@ describe('generateVault', () => {
       novelTitle: 'Mini Test Novel'
     })
     const vorn = await readFile(
-      join(vaultPath, 'Characters', 'Secondary', 'Captain Vorn.md'),
+      join(vaultPath, 'Characters', '2 - Secondary', 'Captain Vorn.md'),
       'utf8'
     )
     expect(vorn).toContain('> [!note]- Per-chapter activity')
@@ -173,7 +173,7 @@ describe('generateVault', () => {
       novelTitle: 'Mini Test Novel'
     })
     const elara = await readFile(
-      join(vaultPath, 'Characters', 'Main', 'Elara.md'),
+      join(vaultPath, 'Characters', '1 - Main', 'Elara.md'),
       'utf8'
     )
     expect(elara).not.toMatch(/^## Role\s*$/m)
@@ -184,7 +184,7 @@ describe('generateVault', () => {
       novelTitle: 'Mini Test Novel'
     })
     const elara = await readFile(
-      join(vaultPath, 'Characters', 'Main', 'Elara.md'),
+      join(vaultPath, 'Characters', '1 - Main', 'Elara.md'),
       'utf8'
     )
     expect(elara).toContain('> [!info]- Relationships (2)')
@@ -203,7 +203,7 @@ describe('generateVault', () => {
       novelTitle: 'Mini Test Novel'
     })
     const archivist = await readFile(
-      join(vaultPath, 'Characters', 'Minor', 'The Archivist.md'),
+      join(vaultPath, 'Characters', '3 - Minor', 'The Archivist.md'),
       'utf8'
     )
     expect(archivist).toContain('## Relationships\n\n*(none recorded)*')
@@ -215,7 +215,7 @@ describe('generateVault', () => {
       novelTitle: 'Mini Test Novel'
     })
     const archivist = await readFile(
-      join(vaultPath, 'Characters', 'Minor', 'The Archivist.md'),
+      join(vaultPath, 'Characters', '3 - Minor', 'The Archivist.md'),
       'utf8'
     )
     expect(archivist).not.toContain('> [!note]- Per-chapter activity')
@@ -226,7 +226,7 @@ describe('generateVault', () => {
       novelTitle: 'Mini Test Novel'
     })
     const archivist = await readFile(
-      join(vaultPath, 'Characters', 'Minor', 'The Archivist.md'),
+      join(vaultPath, 'Characters', '3 - Minor', 'The Archivist.md'),
       'utf8'
     )
     expect(archivist).toContain('> [!abstract] At a Glance')
@@ -298,7 +298,7 @@ describe('generateVault', () => {
     expect(ch2).not.toContain('> [!abstract] Chapter Card')
   })
 
-  it('renders chapter events inside a "> [!example] Events" callout', async () => {
+  it('renders chapter events inside a "> [!example] Events" callout as bullets in sequence order', async () => {
     await generateVault(extraction, project, vaultPath, {
       novelTitle: 'Mini Test Novel'
     })
@@ -307,8 +307,12 @@ describe('generateVault', () => {
       'utf8'
     )
     expect(ch3).toContain('> [!example] Events')
-    expect(ch3).toContain('> 1. Elara ascends the Silver Tower alone.')
-    expect(ch3).toContain('> 2. The Archivist blocks her path to the archive.')
+    expect(ch3).toContain('> - Elara ascends the Silver Tower alone.')
+    expect(ch3).toContain('> - The Archivist blocks her path to the archive.')
+    expect(ch3).not.toMatch(/> \d+\. /)
+    const firstIdx = ch3.indexOf('Elara ascends the Silver Tower alone.')
+    const secondIdx = ch3.indexOf('The Archivist blocks her path to the archive.')
+    expect(firstIdx).toBeLessThan(secondIdx)
   })
 
   it('renders chapter Characters and Locations as single-line info callouts with middle-dot separators', async () => {
@@ -334,7 +338,7 @@ describe('generateVault', () => {
     await generateVault(extraction, project, vaultPath, {
       novelTitle: 'Mini Test Novel'
     })
-    const elaraPath = join(vaultPath, 'Characters', 'Main', 'Elara.md')
+    const elaraPath = join(vaultPath, 'Characters', '1 - Main', 'Elara.md')
     const before = await readFile(elaraPath, 'utf8')
     const edited = before.replace(
       "## Writer's Notes\n",
@@ -353,7 +357,7 @@ describe('generateVault', () => {
     await generateVault(extraction, project, vaultPath, {
       novelTitle: 'Mini Test Novel'
     })
-    const elaraPath = join(vaultPath, 'Characters', 'Main', 'Elara.md')
+    const elaraPath = join(vaultPath, 'Characters', '1 - Main', 'Elara.md')
     const edited = (await readFile(elaraPath, 'utf8'))
       .replace(/## Writer's Notes[\s\S]*$/, '')
       .concat('\nAn orphan paragraph with no heading.\n')
@@ -395,7 +399,7 @@ describe('generateVault', () => {
     expect(first.filesWritten).toBe(12)
     expect(first.filesPreserved).toBe(0)
 
-    const notesPath = join(vaultPath, 'Characters', 'Main', 'Elara.md')
+    const notesPath = join(vaultPath, 'Characters', '1 - Main', 'Elara.md')
     const notesContent = (await readFile(notesPath, 'utf8')).replace(
       "## Writer's Notes\n",
       "## Writer's Notes\n\nKeep me.\n"
@@ -577,16 +581,21 @@ describe('generateVault', () => {
     expect(ch3).not.toMatch(/^synopsis:/m)
   })
 
-  it('creates all four character tier subfolders even when a tier has no characters', async () => {
+  it('creates all four character tier subfolders with numeric prefixes', async () => {
     await generateVault(extraction, project, vaultPath, {
       novelTitle: 'Mini Test Novel'
     })
-    for (const tier of ['Main', 'Secondary', 'Minor', 'Mentioned']) {
+    for (const tier of [
+      '1 - Main',
+      '2 - Secondary',
+      '3 - Minor',
+      '4 - Mentioned'
+    ]) {
       expect(await pathExists(join(vaultPath, 'Characters', tier))).toBe(true)
     }
   })
 
-  it('writes a mentioned-tier character into Characters/Mentioned/', async () => {
+  it('writes a mentioned-tier character into Characters/4 - Mentioned/', async () => {
     const withMentioned: ExtractionResult = {
       ...extraction,
       characters: [
@@ -610,7 +619,7 @@ describe('generateVault', () => {
     })
     expect(
       await pathExists(
-        join(vaultPath, 'Characters', 'Mentioned', 'Queen Mira.md')
+        join(vaultPath, 'Characters', '4 - Mentioned', 'Queen Mira.md')
       )
     ).toBe(true)
   })
@@ -623,8 +632,8 @@ describe('generateVault', () => {
       join(vaultPath, 'Chapters', '03 - The Silver Tower.md'),
       'utf8'
     )
-    expect(ch3).not.toContain('[[Main/Elara]]')
-    expect(ch3).not.toContain('[[Minor/The Archivist]]')
+    expect(ch3).not.toContain('[[1 - Main/Elara]]')
+    expect(ch3).not.toContain('[[3 - Minor/The Archivist]]')
     expect(ch3).toContain('[[Elara]]')
     expect(ch3).toContain('[[The Archivist]]')
   })
@@ -736,12 +745,141 @@ describe('generateVault', () => {
 
     expect(await pathExists(legacyPath)).toBe(false)
     expect(
-      await pathExists(join(vaultPath, 'Characters', 'Main', 'Elara.md'))
+      await pathExists(join(vaultPath, 'Characters', '1 - Main', 'Elara.md'))
     ).toBe(true)
     const parsed = JSON.parse(
       await readFile(join(vaultPath, '_meta', 'extraction-log.json'), 'utf8')
     )
     const warnings = parsed.vaultWarnings as string[]
     expect(warnings.some((w) => w.toLowerCase().includes('legacy'))).toBe(true)
+  })
+
+  it('removes a pre-#5.4.1 unprefixed tier folder and its contents on first run', async () => {
+    const legacyDir = join(vaultPath, 'Characters', 'Main')
+    await mkdir(legacyDir, { recursive: true })
+    const legacyFile = join(legacyDir, 'Elara.md')
+    await writeFile(legacyFile, '---\ntype: "character"\n---\nstale\n', 'utf8')
+
+    await generateVault(extraction, project, vaultPath, {
+      novelTitle: 'Mini Test Novel'
+    })
+
+    expect(await pathExists(legacyDir)).toBe(false)
+    expect(
+      await pathExists(join(vaultPath, 'Characters', '1 - Main', 'Elara.md'))
+    ).toBe(true)
+    const parsed = JSON.parse(
+      await readFile(join(vaultPath, '_meta', 'extraction-log.json'), 'utf8')
+    )
+    const warnings = parsed.vaultWarnings as string[]
+    expect(
+      warnings.some((w) =>
+        w.toLowerCase().includes("legacy tier folder 'main'")
+      )
+    ).toBe(true)
+  })
+
+  it('legacy tier folder cleanup is a no-op when the folder is absent', async () => {
+    await generateVault(extraction, project, vaultPath, {
+      novelTitle: 'Mini Test Novel'
+    })
+    expect(
+      await pathExists(join(vaultPath, 'Characters', '1 - Main', 'Elara.md'))
+    ).toBe(true)
+    const parsed = JSON.parse(
+      await readFile(join(vaultPath, '_meta', 'extraction-log.json'), 'utf8')
+    )
+    const warnings = parsed.vaultWarnings as string[]
+    expect(
+      warnings.every((w) => !w.toLowerCase().includes('legacy tier folder'))
+    ).toBe(true)
+  })
+
+  it('user-tier override moves a character to the requested tier folder', async () => {
+    await generateVault(extraction, project, vaultPath, {
+      novelTitle: 'Mini Test Novel'
+    })
+    const archivistPath = join(
+      vaultPath,
+      'Characters',
+      '3 - Minor',
+      'The Archivist.md'
+    )
+    const original = await readFile(archivistPath, 'utf8')
+    const withOverride = original.replace(
+      /^---\n/,
+      '---\nuser-tier: main\n'
+    )
+    await writeFile(archivistPath, withOverride, 'utf8')
+
+    await generateVault(extraction, project, vaultPath, {
+      novelTitle: 'Mini Test Novel'
+    })
+
+    expect(
+      await pathExists(
+        join(vaultPath, 'Characters', '1 - Main', 'The Archivist.md')
+      )
+    ).toBe(true)
+    const promoted = await readFile(
+      join(vaultPath, 'Characters', '1 - Main', 'The Archivist.md'),
+      'utf8'
+    )
+    expect(promoted).toContain('user-tier: "main"')
+  })
+
+  it('user-role override is preserved in the regenerated frontmatter', async () => {
+    await generateVault(extraction, project, vaultPath, {
+      novelTitle: 'Mini Test Novel'
+    })
+    const elaraPath = join(vaultPath, 'Characters', '1 - Main', 'Elara.md')
+    const original = await readFile(elaraPath, 'utf8')
+    const withOverride = original.replace(
+      /^---\n/,
+      '---\nuser-role: "party healer and romantic lead"\n'
+    )
+    await writeFile(elaraPath, withOverride, 'utf8')
+
+    await generateVault(extraction, project, vaultPath, {
+      novelTitle: 'Mini Test Novel'
+    })
+
+    const after = await readFile(elaraPath, 'utf8')
+    expect(after).toContain('user-role: "party healer and romantic lead"')
+    expect(after).toContain('role: "protagonist, first-year academy scholar"')
+  })
+
+  it('user-tier round-trip is stable across a second regeneration', async () => {
+    await generateVault(extraction, project, vaultPath, {
+      novelTitle: 'Mini Test Novel'
+    })
+    const archivistPath = join(
+      vaultPath,
+      'Characters',
+      '3 - Minor',
+      'The Archivist.md'
+    )
+    const original = await readFile(archivistPath, 'utf8')
+    await writeFile(
+      archivistPath,
+      original.replace(/^---\n/, '---\nuser-tier: main\n'),
+      'utf8'
+    )
+
+    // First sync: moves The Archivist to 1 - Main and mutates the extraction
+    // so the next run's input reflects the promoted tier.
+    await generateVault(extraction, project, vaultPath, {
+      novelTitle: 'Mini Test Novel'
+    })
+
+    await generateVault(extraction, project, vaultPath, {
+      novelTitle: 'Mini Test Novel'
+    })
+
+    const stable = await readFile(
+      join(vaultPath, 'Characters', '1 - Main', 'The Archivist.md'),
+      'utf8'
+    )
+    expect(stable).toContain('user-tier: "main"')
   })
 })

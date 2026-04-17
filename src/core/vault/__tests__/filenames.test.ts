@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import type { ExtractedCharacter } from '../../../shared/types'
 import {
+  CHARACTER_TIER_FOLDERS,
   allocateCharacterFilenames,
   basenameOf,
   chapterFilename,
@@ -82,11 +83,27 @@ describe('FilenameAllocator', () => {
 })
 
 describe('tierToFolder', () => {
-  it('maps each tier to its capitalized folder name', () => {
-    expect(tierToFolder('main')).toBe('Main')
-    expect(tierToFolder('secondary')).toBe('Secondary')
-    expect(tierToFolder('minor')).toBe('Minor')
-    expect(tierToFolder('mentioned')).toBe('Mentioned')
+  it('maps each tier to its numerically-prefixed folder name', () => {
+    expect(tierToFolder('main')).toBe('1 - Main')
+    expect(tierToFolder('secondary')).toBe('2 - Secondary')
+    expect(tierToFolder('minor')).toBe('3 - Minor')
+    expect(tierToFolder('mentioned')).toBe('4 - Mentioned')
+  })
+
+  it('produces folder names that all start with a numeric prefix', () => {
+    for (const tier of ['main', 'secondary', 'minor', 'mentioned'] as const) {
+      expect(tierToFolder(tier)).toMatch(/^\d+ - /)
+    }
+  })
+
+  it('produces folder names whose alphabetical sort matches tier priority', () => {
+    const sorted = [...CHARACTER_TIER_FOLDERS].sort()
+    expect(sorted).toEqual([
+      '1 - Main',
+      '2 - Secondary',
+      '3 - Minor',
+      '4 - Mentioned'
+    ])
   })
 })
 
@@ -111,10 +128,12 @@ describe('allocateCharacterFilenames', () => {
       buildChar('Guard', 'minor'),
       buildChar("Kiel's Mother", 'mentioned')
     ])
-    expect(result.filenames.get('Kiel')).toBe('Main/Kiel')
-    expect(result.filenames.get('Ada')).toBe('Secondary/Ada')
-    expect(result.filenames.get('Guard')).toBe('Minor/Guard')
-    expect(result.filenames.get("Kiel's Mother")).toBe("Mentioned/Kiel's Mother")
+    expect(result.filenames.get('Kiel')).toBe('1 - Main/Kiel')
+    expect(result.filenames.get('Ada')).toBe('2 - Secondary/Ada')
+    expect(result.filenames.get('Guard')).toBe('3 - Minor/Guard')
+    expect(result.filenames.get("Kiel's Mother")).toBe(
+      "4 - Mentioned/Kiel's Mother"
+    )
     expect(result.warnings).toHaveLength(0)
   })
 
@@ -123,8 +142,8 @@ describe('allocateCharacterFilenames', () => {
       buildChar('Amber', 'main'),
       buildChar('Amber?', 'minor')
     ])
-    expect(result.filenames.get('Amber')).toBe('Main/Amber')
-    expect(result.filenames.get('Amber?')).toBe('Minor/Amber')
+    expect(result.filenames.get('Amber')).toBe('1 - Main/Amber')
+    expect(result.filenames.get('Amber?')).toBe('3 - Minor/Amber')
   })
 
   it('suffixes (2) on the second same-tier collision', () => {
@@ -132,8 +151,8 @@ describe('allocateCharacterFilenames', () => {
       { ...buildChar('Amber', 'main'), role: 'knight' },
       { ...buildChar('Amber?', 'main'), role: 'apprentice' }
     ])
-    expect(result.filenames.get('Amber')).toBe('Main/Amber')
-    expect(result.filenames.get('Amber?')).toBe('Main/Amber (2)')
+    expect(result.filenames.get('Amber')).toBe('1 - Main/Amber')
+    expect(result.filenames.get('Amber?')).toBe('1 - Main/Amber (2)')
     expect(result.warnings.some((w) => w.includes('Amber'))).toBe(true)
   })
 
@@ -143,9 +162,9 @@ describe('allocateCharacterFilenames', () => {
       buildChar('***', 'minor'),
       buildChar('<<<', 'mentioned')
     ])
-    expect(result.filenames.get('???')).toBe('Minor/_unnamed_1')
-    expect(result.filenames.get('***')).toBe('Minor/_unnamed_2')
-    expect(result.filenames.get('<<<')).toBe('Mentioned/_unnamed_1')
+    expect(result.filenames.get('???')).toBe('3 - Minor/_unnamed_1')
+    expect(result.filenames.get('***')).toBe('3 - Minor/_unnamed_2')
+    expect(result.filenames.get('<<<')).toBe('4 - Mentioned/_unnamed_1')
     expect(result.warnings.length).toBeGreaterThanOrEqual(3)
   })
 })

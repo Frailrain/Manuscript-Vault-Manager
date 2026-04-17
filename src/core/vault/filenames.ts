@@ -68,17 +68,24 @@ export class FilenameAllocator {
 export function tierToFolder(tier: CharacterTier): string {
   switch (tier) {
     case 'main':
-      return 'Main'
+      return '1 - Main'
     case 'secondary':
-      return 'Secondary'
+      return '2 - Secondary'
     case 'minor':
-      return 'Minor'
+      return '3 - Minor'
     case 'mentioned':
-      return 'Mentioned'
+      return '4 - Mentioned'
   }
 }
 
 export const CHARACTER_TIER_FOLDERS: ReadonlyArray<string> = [
+  '1 - Main',
+  '2 - Secondary',
+  '3 - Minor',
+  '4 - Mentioned'
+]
+
+export const LEGACY_CHARACTER_TIER_FOLDERS: ReadonlyArray<string> = [
   'Main',
   'Secondary',
   'Minor',

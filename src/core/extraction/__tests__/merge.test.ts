@@ -308,6 +308,80 @@ describe('mergeCharacters', () => {
     expect(running[0]!.tier).toBe('main')
   })
 
+  it('role: the first non-empty role wins and is not overwritten by a later delta', () => {
+    const running: ExtractedCharacter[] = []
+    mergeCharacters(
+      running,
+      [
+        {
+          name: 'Elara',
+          aliases: [],
+          description: '',
+          role: 'village healer',
+          relationships: [],
+          isNew: true,
+          chapterActivity: '',
+          tier: 'secondary'
+        }
+      ],
+      1
+    )
+    mergeCharacters(
+      running,
+      [
+        {
+          name: 'Elara',
+          aliases: [],
+          description: '',
+          role: 'party healer',
+          relationships: [],
+          isNew: false,
+          chapterActivity: '',
+          tier: 'secondary'
+        }
+      ],
+      2
+    )
+    expect(running[0]!.role).toBe('village healer')
+  })
+
+  it('role: an empty later role does not clobber an existing role', () => {
+    const running: ExtractedCharacter[] = []
+    mergeCharacters(
+      running,
+      [
+        {
+          name: 'Elara',
+          aliases: [],
+          description: '',
+          role: 'village healer',
+          relationships: [],
+          isNew: true,
+          chapterActivity: '',
+          tier: 'secondary'
+        }
+      ],
+      1
+    )
+    mergeCharacters(
+      running,
+      [
+        {
+          name: 'Elara',
+          aliases: [],
+          description: '',
+          role: '',
+          relationships: [],
+          isNew: false,
+          chapterActivity: '',
+          tier: 'secondary'
+        }
+      ],
+      2
+    )
+    expect(running[0]!.role).toBe('village healer')
+  })
+
   it('stores chapterActivity under the current chapter order for a new character', () => {
     const running: ExtractedCharacter[] = []
     mergeCharacters(

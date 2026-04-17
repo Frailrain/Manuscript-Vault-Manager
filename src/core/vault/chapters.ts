@@ -97,7 +97,7 @@ function buildChapterFile(
           type: 'example',
           title: 'Events',
           body: events
-            .map((e, idx) => `${idx + 1}. ${stripHeadingMarkers(e.summary)}`)
+            .map((e) => `- ${stripHeadingMarkers(e.summary)}`)
             .join('\n')
         })
       : null

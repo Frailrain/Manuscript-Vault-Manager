@@ -17,11 +17,15 @@ import { writeDashboard } from './dashboard'
 import { VaultGenerationError } from './errors'
 import {
   CHARACTER_TIER_FOLDERS,
+  LEGACY_CHARACTER_TIER_FOLDERS,
   allocateCharacterFilenames,
-  chapterFilename as buildChapterFilename
+  chapterFilename as buildChapterFilename,
+  sanitizeFilename,
+  tierToFolder
 } from './filenames'
 import { allocateLocationFilenames, writeLocations } from './locations'
 import { writeTimeline } from './timeline'
+import { readUserOverrides, type UserOverrides } from './userOverrides'
 import { buildNameResolver } from './wikilinks'
 
 export async function generateVault(
@@ -62,17 +66,23 @@ export async function generateVault(
       await ensureDirectory(dir)
     }
 
+    const warnings: string[] = []
+    await cleanupLegacyUnprefixedTierFolders(charactersDir, warnings)
+    await cleanupLegacyFlatCharacters(charactersDir, warnings)
+
     for (const folder of CHARACTER_TIER_FOLDERS) {
       await ensureDirectory(join(charactersDir, folder))
     }
-
-    const warnings: string[] = []
-    await cleanupLegacyFlatCharacters(charactersDir, warnings)
 
     const { chapterFilenames, chaptersByUuid } = buildChapterIndexes(
       extraction,
       scrivenerProject,
       warnings
+    )
+
+    const userOverrides = await collectUserOverrides(
+      extraction,
+      charactersDir
     )
 
     const characterAllocation = allocateCharacterFilenames(
@@ -114,7 +124,8 @@ export async function generateVault(
       warnings,
       onProgress,
       characterFields: options.characterFields,
-      characterSectionLabel: options.characterSectionLabel
+      characterSectionLabel: options.characterSectionLabel,
+      userOverrides
     })
     filesWritten += characterStats.filesWritten
     filesPreserved += characterStats.filesPreserved
@@ -213,11 +224,67 @@ function validateInputs(
 }
 
 /**
+ * Read `user-*` frontmatter overrides from every character's existing file
+ * (looked up at the LLM-assigned tier folder). Applies overrides to the
+ * in-memory character state so filename allocation picks the user-chosen
+ * folder. The returned map lets `writeCharacters` re-emit the `user-*` keys
+ * in the regenerated frontmatter, which round-trips the override for future
+ * syncs.
+ */
+async function collectUserOverrides(
+  extraction: ExtractionResult,
+  charactersDir: string
+): Promise<Map<string, UserOverrides>> {
+  const collected = new Map<string, UserOverrides>()
+  for (const char of extraction.characters) {
+    const currentTierFolder = tierToFolder(char.tier)
+    const sanitized = sanitizeFilename(char.name)
+    if (sanitized.length === 0) continue
+    const candidatePath = join(
+      charactersDir,
+      currentTierFolder,
+      `${sanitized}.md`
+    )
+    const overrides = await readUserOverrides(candidatePath)
+    if (overrides.tier) char.tier = overrides.tier
+    collected.set(char.name, overrides)
+  }
+  return collected
+}
+
+/**
+ * Remove pre-#5.4.1 unprefixed tier folders (`Main/`, `Secondary/`, `Minor/`,
+ * `Mentioned/`) so they don't linger alongside the new `N - Label` folders.
+ * Any Writer's Notes inside the old folders are lost — acceptable pre-launch.
+ */
+async function cleanupLegacyUnprefixedTierFolders(
+  charactersDir: string,
+  warnings: string[]
+): Promise<void> {
+  for (const legacy of LEGACY_CHARACTER_TIER_FOLDERS) {
+    const legacyPath = join(charactersDir, legacy)
+    try {
+      const stats = await readdir(legacyPath)
+      await rm(legacyPath, { recursive: true, force: true })
+      warnings.push(
+        `Removed legacy tier folder '${legacy}' (${stats.length} entries)`
+      )
+    } catch (err) {
+      const code = (err as NodeJS.ErrnoException).code
+      if (code === 'ENOENT') continue
+      warnings.push(
+        `Failed to remove legacy tier folder '${legacy}': ${(err as Error).message}`
+      )
+    }
+  }
+}
+
+/**
  * Delete any stray `.md` files directly under `Characters/` (top-level). Under
  * the tier-subfolder layout, no character file should live at the top level —
- * everything goes into `Main/`, `Secondary/`, `Minor/`, or `Mentioned/`. Files
- * left here are from pre-tier-subfolder vaults and would otherwise show as
- * duplicates alongside the new structured files.
+ * everything goes into a tier subfolder. Files left here are from
+ * pre-tier-subfolder vaults and would otherwise show as duplicates alongside
+ * the new structured files.
  */
 async function cleanupLegacyFlatCharacters(
   charactersDir: string,

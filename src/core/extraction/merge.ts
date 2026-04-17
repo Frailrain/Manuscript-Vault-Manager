@@ -18,6 +18,22 @@ const TIER_RANK: Record<CharacterTier, number> = {
   mentioned: 0
 }
 
+/**
+ * Merge tier from an incoming delta into the existing character state.
+ *
+ * **Policy: tier can be PROMOTED but never DEMOTED by the LLM.**
+ *
+ * Rationale: a character's importance in a story often becomes clearer over
+ * time. The LLM may classify someone as Minor in Chapter 3 when they first
+ * appear, then as Main in Chapter 20 when their significance becomes clear.
+ * That's a valid correction — accept the promotion.
+ *
+ * Demotion (e.g. LLM saw them as Main in one chapter but Minor in another)
+ * is rejected — once promoted, always promoted. The user can still override
+ * via `user-tier` in frontmatter if the LLM's promotion was wrong.
+ *
+ * Ranking (highest to lowest): main > secondary > minor > mentioned.
+ */
 export function mergeTier(
   existing: CharacterTier,
   incoming: CharacterTier
@@ -44,6 +60,11 @@ export function mergeCharacters(
       if (!existing.appearances.includes(chapterOrder)) {
         existing.appearances.push(chapterOrder)
       }
+      // Role is set once by the first chapter that provides one. Subsequent
+      // chapters don't overwrite it — the LLM may give different phrasings
+      // ("village healer" vs "party healer") across chapters, and we want
+      // stable initial-extraction behavior. User can override via user-role
+      // in frontmatter.
       if (delta.role && !existing.role) existing.role = delta.role
       existing.tier = mergeTier(
         existing.tier ?? 'minor',

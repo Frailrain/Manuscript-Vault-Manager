@@ -16,6 +16,7 @@ import {
   applyCustomFieldsToFrontmatter,
   renderTrackingCallout
 } from './tracking'
+import type { UserOverrides } from './userOverrides'
 import { writeManagedFile } from './writeManaged'
 import { chapterWikiLink, type NameResolver } from './wikilinks'
 
@@ -28,6 +29,7 @@ export interface CharacterWriteContext {
   onProgress?: (progress: VaultProgress) => void
   characterFields?: GenreFieldDef[]
   characterSectionLabel?: string
+  userOverrides?: Map<string, UserOverrides>
 }
 
 export interface CharacterWriteStats {
@@ -79,6 +81,10 @@ function buildCharacterFile(
   fmFields.firstAppearance = character.firstAppearanceChapter
   fmFields.appearances = [...character.appearances]
   applyCustomFieldsToFrontmatter(fmFields, fieldDefs, character.customFields)
+
+  const overrides = ctx.userOverrides?.get(character.name)
+  if (overrides?.tier) fmFields['user-tier'] = overrides.tier
+  if (overrides?.role) fmFields['user-role'] = overrides.role
 
   const frontmatter = buildFrontmatter(fmFields)
 
