@@ -247,6 +247,7 @@ async function collectUserOverrides(
     )
     const overrides = await readUserOverrides(candidatePath)
     if (overrides.tier) char.tier = overrides.tier
+    if (overrides.role) char.role = overrides.role
     collected.set(char.name, overrides)
   }
   return collected

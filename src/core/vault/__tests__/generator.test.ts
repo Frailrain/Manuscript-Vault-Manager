@@ -846,7 +846,29 @@ describe('generateVault', () => {
 
     const after = await readFile(elaraPath, 'utf8')
     expect(after).toContain('user-role: "party healer and romantic lead"')
-    expect(after).toContain('role: "protagonist, first-year academy scholar"')
+  })
+
+  it('user-role override drives the At a Glance Role display', async () => {
+    await generateVault(extraction, project, vaultPath, {
+      novelTitle: 'Mini Test Novel'
+    })
+    const elaraPath = join(vaultPath, 'Characters', '1 - Main', 'Elara.md')
+    const original = await readFile(elaraPath, 'utf8')
+    const withOverride = original.replace(
+      /^---\n/,
+      '---\nuser-role: "party healer and romantic lead"\n'
+    )
+    await writeFile(elaraPath, withOverride, 'utf8')
+
+    await generateVault(extraction, project, vaultPath, {
+      novelTitle: 'Mini Test Novel'
+    })
+
+    const after = await readFile(elaraPath, 'utf8')
+    expect(after).toContain('**Role:** party healer and romantic lead')
+    expect(after).not.toContain(
+      '**Role:** protagonist, first-year academy scholar'
+    )
   })
 
   it('user-tier round-trip is stable across a second regeneration', async () => {
