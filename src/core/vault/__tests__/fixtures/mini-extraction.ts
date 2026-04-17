@@ -80,6 +80,10 @@ export function buildMiniExtraction(): ExtractionResult {
         aliases: ['El', 'The Scholar'],
         description:
           '(Ch 1): Tall, grey-eyed scholar with a scar across her cheek.\n\n(Ch 3): Carries a silver knife engraved with an unknown crest.',
+        chapterActivity: {
+          1: 'Arrives at the academy gates. Meets Vorn for the first time.',
+          3: 'Ascends the Silver Tower alone. Confronts the Archivist in the archive.'
+        },
         role: 'protagonist, first-year academy scholar',
         relationships: [
           { name: 'Captain Vorn', relationship: 'mentor, trained her at the academy' },
@@ -94,6 +98,10 @@ export function buildMiniExtraction(): ExtractionResult {
         name: 'Captain Vorn',
         aliases: [],
         description: 'A grizzled veteran of the Border Wars.',
+        chapterActivity: {
+          1: 'Challenges Elara to a sparring match.',
+          2: 'Flees Redgate with Elara after the breach.'
+        },
         role: 'mentor',
         relationships: [
           { name: 'Elara', relationship: 'ward and protégée' }
@@ -107,6 +115,7 @@ export function buildMiniExtraction(): ExtractionResult {
         name: 'The Archivist',
         aliases: [],
         description: 'Shrouded in grey robes; face always hidden.',
+        chapterActivity: {},
         role: '',
         relationships: [],
         firstAppearanceChapter: 3,

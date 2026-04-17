@@ -133,7 +133,7 @@ describe('generateVault', () => {
     )
   })
 
-  it('renders a synthesized description paragraph with a foldable per-chapter callout', async () => {
+  it('renders a synthesized identity paragraph and a foldable per-chapter activity callout', async () => {
     await generateVault(extraction, project, vaultPath, {
       novelTitle: 'Mini Test Novel'
     })
@@ -144,13 +144,28 @@ describe('generateVault', () => {
     expect(elara).toContain(
       'Tall, grey-eyed scholar with a scar across her cheek, who carries a silver knife engraved with an unknown crest.'
     )
-    expect(elara).toContain('> [!note]- Per-chapter detail')
-    expect(elara).toContain(
-      '> **Chapter 1:** Tall, grey-eyed scholar with a scar across her cheek.'
+    expect(elara).toContain('> [!note]- Per-chapter activity')
+    expect(elara).toContain('> **Chapter 1:**')
+    expect(elara).toContain('> - Arrives at the academy gates.')
+    expect(elara).toContain('> - Meets Vorn for the first time.')
+    expect(elara).toContain('> **Chapter 3:**')
+    expect(elara).toContain('> - Ascends the Silver Tower alone.')
+    expect(elara).toContain('> - Confronts the Archivist in the archive.')
+  })
+
+  it('sentence-splits a chapterActivity string into one bullet per sentence', async () => {
+    await generateVault(extraction, project, vaultPath, {
+      novelTitle: 'Mini Test Novel'
+    })
+    const vorn = await readFile(
+      join(vaultPath, 'Characters', 'Captain Vorn.md'),
+      'utf8'
     )
-    expect(elara).toContain(
-      '> **Chapter 3:** Carries a silver knife engraved with an unknown crest.'
-    )
+    expect(vorn).toContain('> [!note]- Per-chapter activity')
+    expect(vorn).toContain('> **Chapter 1:**')
+    expect(vorn).toContain('> - Challenges Elara to a sparring match.')
+    expect(vorn).toContain('> **Chapter 2:**')
+    expect(vorn).toContain('> - Flees Redgate with Elara after the breach.')
   })
 
   it("omits the separate '## Role' heading from character files", async () => {
@@ -164,7 +179,7 @@ describe('generateVault', () => {
     expect(elara).not.toMatch(/^## Role\s*$/m)
   })
 
-  it('renders each relationship as its own "> [!info] [[Target]]" callout', async () => {
+  it('renders relationships as a single foldable callout with bulleted wiki-links', async () => {
     await generateVault(extraction, project, vaultPath, {
       novelTitle: 'Mini Test Novel'
     })
@@ -172,24 +187,38 @@ describe('generateVault', () => {
       join(vaultPath, 'Characters', 'Elara.md'),
       'utf8'
     )
+    expect(elara).toContain('> [!info]- Relationships (2)')
     expect(elara).toContain(
-      '> [!info] [[Captain Vorn]]\n> mentor, trained her at the academy'
+      '> - **[[Captain Vorn]]** — mentor, trained her at the academy'
     )
     expect(elara).toContain(
-      '> [!info] [[The Archivist]]\n> adversary, withholds information'
+      '> - **[[The Archivist]]** — adversary, withholds information'
     )
+    expect(elara).not.toContain('> [!info] [[Captain Vorn]]')
+    expect(elara).not.toContain('> [!info] [[The Archivist]]')
   })
 
-  it('omits per-chapter detail callout when description has no (Ch N): prefix', async () => {
+  it('renders "(none recorded)" when a character has no relationships', async () => {
     await generateVault(extraction, project, vaultPath, {
       novelTitle: 'Mini Test Novel'
     })
-    const vorn = await readFile(
-      join(vaultPath, 'Characters', 'Captain Vorn.md'),
+    const archivist = await readFile(
+      join(vaultPath, 'Characters', 'The Archivist.md'),
       'utf8'
     )
-    expect(vorn).toContain('A grizzled veteran of the Border Wars.')
-    expect(vorn).not.toContain('> [!note]- Per-chapter detail')
+    expect(archivist).toContain('## Relationships\n\n*(none recorded)*')
+    expect(archivist).not.toContain('> [!info]- Relationships')
+  })
+
+  it('omits the per-chapter activity callout when chapterActivity is empty', async () => {
+    await generateVault(extraction, project, vaultPath, {
+      novelTitle: 'Mini Test Novel'
+    })
+    const archivist = await readFile(
+      join(vaultPath, 'Characters', 'The Archivist.md'),
+      'utf8'
+    )
+    expect(archivist).not.toContain('> [!note]- Per-chapter activity')
   })
 
   it('omits Role line in "At a Glance" when role is empty', async () => {

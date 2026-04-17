@@ -41,13 +41,37 @@ describe('renderTrackingCallout', () => {
     expect(out).toContain('**Class:** Ranger')
   })
 
-  it('renders list values comma-joined', () => {
+  it('renders list values as a bulleted list under the label', () => {
     const out = renderTrackingCallout(
       'Character Sheet',
       LITRPG_CHAR_FIELDS,
       { spells: ['Arrow', 'Track', 'Heal'] }
     )
-    expect(out).toContain('**Spells:** Arrow, Track, Heal')
+    expect(out).toContain('**Spells:**')
+    expect(out).toContain('> - Arrow')
+    expect(out).toContain('> - Track')
+    expect(out).toContain('> - Heal')
+    expect(out).not.toContain('**Spells:** Arrow')
+  })
+
+  it('renders a single-item list as a one-bullet list', () => {
+    const out = renderTrackingCallout(
+      'Character Sheet',
+      LITRPG_CHAR_FIELDS,
+      { spells: ['Arrow'] }
+    )
+    expect(out).toContain('**Spells:**')
+    expect(out).toContain('> - Arrow')
+  })
+
+  it('keeps text and number values as inline "**Label:** value" lines', () => {
+    const out = renderTrackingCallout(
+      'Character Sheet',
+      LITRPG_CHAR_FIELDS,
+      { level: 7, class: 'Mage' }
+    )
+    expect(out).toContain('> **Level:** 7')
+    expect(out).toContain('> **Class:** Mage')
   })
 
   it('skips empty/invalid values', () => {

@@ -26,9 +26,9 @@ export function renderTrackingCallout(
   const bodyLines: string[] = []
   for (const def of fieldDefs) {
     const raw = values[def.key]
-    const rendered = renderFieldValue(def, raw)
+    const rendered = renderFieldLines(def, raw)
     if (rendered === null) continue
-    bodyLines.push(`**${stripHeadingMarkers(def.label)}:** ${rendered}`)
+    bodyLines.push(...rendered)
   }
   if (bodyLines.length === 0) return null
   return renderCallout({
@@ -38,21 +38,26 @@ export function renderTrackingCallout(
   })
 }
 
-function renderFieldValue(
+function renderFieldLines(
   def: GenreFieldDef,
   value: CustomFieldValue | undefined
-): string | null {
+): string[] | null {
   if (value === undefined || value === null) return null
+  const label = stripHeadingMarkers(def.label)
   if (def.type === 'list') {
     if (!Array.isArray(value) || value.length === 0) return null
-    return value.map((v) => stripHeadingMarkers(v)).join(', ')
+    const items = value
+      .map((v) => (typeof v === 'string' ? stripHeadingMarkers(v) : ''))
+      .filter((v) => v.length > 0)
+    if (items.length === 0) return null
+    return [`**${label}:**`, ...items.map((item) => `- ${item}`)]
   }
   if (def.type === 'number') {
     if (typeof value !== 'number' || !Number.isFinite(value)) return null
-    return String(value)
+    return [`**${label}:** ${String(value)}`]
   }
   if (typeof value !== 'string' || value.trim().length === 0) return null
-  return stripHeadingMarkers(value.trim())
+  return [`**${label}:** ${stripHeadingMarkers(value.trim())}`]
 }
 
 /**

@@ -63,6 +63,8 @@ export interface ExtractedCharacter {
   name: string
   aliases: string[]
   description: string
+  /** Per-chapter activity summaries keyed by chapter order. Only chapters where the character acts are included. */
+  chapterActivity: Record<number, string>
   role: string
   relationships: Array<{ name: string; relationship: string }>
   firstAppearanceChapter: number
@@ -104,6 +106,8 @@ export interface ExtractedCharacterDelta {
   name: string
   aliases: string[]
   description: string
+  /** What this character does, experiences, or becomes in this specific chapter. Empty string if merely mentioned. */
+  chapterActivity: string
   role: string
   relationships: Array<{ name: string; relationship: string }>
   isNew: boolean

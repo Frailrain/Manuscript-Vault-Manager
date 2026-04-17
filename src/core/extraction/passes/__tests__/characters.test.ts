@@ -63,6 +63,26 @@ describe('charactersPass schema', () => {
     expect(item.required).toContain('tier')
     expect(item.properties.tier?.enum).toEqual(['main', 'secondary', 'minor'])
   })
+
+  it('includes chapterActivity as a required string property', () => {
+    const ctx = makeCtx()
+    const schema = charactersPass.buildSchema!(ctx) as unknown as {
+      properties: {
+        characters: {
+          items: {
+            properties: { chapterActivity?: { type?: string; description?: string } }
+            required: string[]
+          }
+        }
+      }
+    }
+    const item = schema.properties.characters.items
+    expect(item.required).toContain('chapterActivity')
+    expect(item.properties.chapterActivity?.type).toBe('string')
+    expect(item.properties.chapterActivity?.description?.toLowerCase()).toContain(
+      'chapter'
+    )
+  })
 })
 
 describe('charactersPass system prompt', () => {
@@ -73,6 +93,14 @@ describe('charactersPass system prompt', () => {
     expect(systemPrompt).toContain('secondary')
     expect(systemPrompt).toContain('minor')
     expect(systemPrompt.toLowerCase()).toContain('when in doubt')
+  })
+
+  it('explains the split between description (identity) and chapterActivity', () => {
+    const ctx = makeCtx()
+    const { systemPrompt } = charactersPass.buildPrompts(makeChapter(), ctx)
+    expect(systemPrompt).toContain('description')
+    expect(systemPrompt).toContain('chapterActivity')
+    expect(systemPrompt.toLowerCase()).toContain('identity')
   })
 })
 
@@ -128,5 +156,60 @@ describe('charactersPass validate', () => {
       ]
     })
     expect(result.characters[0]!.tier).toBe('main')
+  })
+
+  it('accepts an empty-string chapterActivity', () => {
+    const result = charactersPass.validate({
+      characters: [
+        {
+          name: 'Elara',
+          aliases: [],
+          description: 'A young mage.',
+          chapterActivity: '',
+          role: 'protagonist',
+          relationships: [],
+          isNew: true,
+          tier: 'main'
+        }
+      ]
+    })
+    expect(result.characters[0]!.chapterActivity).toBe('')
+  })
+
+  it('coerces missing chapterActivity to empty string', () => {
+    const result = charactersPass.validate({
+      characters: [
+        {
+          name: 'Elara',
+          aliases: [],
+          description: 'A young mage.',
+          role: 'protagonist',
+          relationships: [],
+          isNew: true,
+          tier: 'main'
+        }
+      ]
+    })
+    expect(result.characters[0]!.chapterActivity).toBe('')
+  })
+
+  it('preserves a non-empty chapterActivity as-is', () => {
+    const result = charactersPass.validate({
+      characters: [
+        {
+          name: 'Elara',
+          aliases: [],
+          description: 'A young mage.',
+          chapterActivity: 'Enters the tower. Confronts the scholar.',
+          role: 'protagonist',
+          relationships: [],
+          isNew: true,
+          tier: 'main'
+        }
+      ]
+    })
+    expect(result.characters[0]!.chapterActivity).toBe(
+      'Enters the tower. Confronts the scholar.'
+    )
   })
 })

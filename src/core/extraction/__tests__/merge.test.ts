@@ -27,6 +27,7 @@ describe('mergeCharacters', () => {
         role: 'protagonist',
         relationships: [],
         isNew: true,
+        chapterActivity: '',
         tier: 'main'
       }
     ]
@@ -38,6 +39,7 @@ describe('mergeCharacters', () => {
         role: 'protagonist',
         relationships: [],
         isNew: false,
+        chapterActivity: '',
         tier: 'main'
       }
     ]
@@ -61,6 +63,7 @@ describe('mergeCharacters', () => {
           role: 'protagonist',
           relationships: [],
           isNew: true,
+          chapterActivity: '',
           tier: 'main'
         }
       ],
@@ -76,6 +79,7 @@ describe('mergeCharacters', () => {
           role: 'scholar',
           relationships: [],
           isNew: true,
+          chapterActivity: '',
           tier: 'main'
         }
       ],
@@ -100,6 +104,7 @@ describe('mergeCharacters', () => {
       role: 'protagonist',
       relationships: [{ name: 'Marek', relationship: 'mentor' }],
       isNew: ch === 1,
+      chapterActivity: '',
       tier: 'main'
     })
     mergeCharacters(running, [delta(1)], 1)
@@ -124,6 +129,7 @@ describe('mergeCharacters', () => {
           role: 'protagonist',
           relationships: [{ name: 'Marek', relationship: 'mentor' }],
           isNew: true,
+          chapterActivity: '',
           tier: 'main'
         }
       ],
@@ -141,6 +147,7 @@ describe('mergeCharacters', () => {
             { name: 'Marek', relationship: 'trusted mentor and former captain' }
           ],
           isNew: false,
+          chapterActivity: '',
           tier: 'main'
         }
       ],
@@ -166,6 +173,7 @@ describe('mergeCharacters', () => {
           role: 'protagonist',
           relationships: [{ name: 'marek', relationship: 'mentor' }],
           isNew: true,
+          chapterActivity: '',
           tier: 'main'
         }
       ],
@@ -181,6 +189,7 @@ describe('mergeCharacters', () => {
           role: 'protagonist',
           relationships: [{ name: 'Marek', relationship: 'sworn ally' }],
           isNew: false,
+          chapterActivity: '',
           tier: 'main'
         }
       ],
@@ -209,6 +218,7 @@ describe('mergeCharacters', () => {
             { name: 'Lirien', relationship: 'rival' }
           ],
           isNew: true,
+          chapterActivity: '',
           tier: 'main'
         }
       ],
@@ -234,6 +244,7 @@ describe('mergeCharacters', () => {
           role: 'guard',
           relationships: [],
           isNew: true,
+          chapterActivity: '',
           tier: 'minor'
         }
       ],
@@ -249,6 +260,7 @@ describe('mergeCharacters', () => {
           role: 'mentor',
           relationships: [],
           isNew: false,
+          chapterActivity: '',
           tier: 'main'
         }
       ],
@@ -270,6 +282,7 @@ describe('mergeCharacters', () => {
           role: 'protagonist',
           relationships: [],
           isNew: true,
+          chapterActivity: '',
           tier: 'main'
         }
       ],
@@ -285,6 +298,7 @@ describe('mergeCharacters', () => {
           role: 'protagonist',
           relationships: [],
           isNew: false,
+          chapterActivity: '',
           tier: 'minor'
         }
       ],
@@ -292,6 +306,129 @@ describe('mergeCharacters', () => {
     )
 
     expect(running[0]!.tier).toBe('main')
+  })
+
+  it('stores chapterActivity under the current chapter order for a new character', () => {
+    const running: ExtractedCharacter[] = []
+    mergeCharacters(
+      running,
+      [
+        {
+          name: 'Elara',
+          aliases: [],
+          description: 'A young mage.',
+          role: 'protagonist',
+          relationships: [],
+          isNew: true,
+          chapterActivity: 'Enters the tower. Confronts the scholar.',
+          tier: 'main'
+        }
+      ],
+      3
+    )
+    expect(running[0]!.chapterActivity).toEqual({
+      3: 'Enters the tower. Confronts the scholar.'
+    })
+  })
+
+  it('accumulates chapterActivity entries across chapters for the same character', () => {
+    const running: ExtractedCharacter[] = []
+    mergeCharacters(
+      running,
+      [
+        {
+          name: 'Elara',
+          aliases: [],
+          description: 'A young mage.',
+          role: 'protagonist',
+          relationships: [],
+          isNew: true,
+          chapterActivity: 'Arrives at the gates.',
+          tier: 'main'
+        }
+      ],
+      1
+    )
+    mergeCharacters(
+      running,
+      [
+        {
+          name: 'Elara',
+          aliases: [],
+          description: 'A young mage.',
+          role: 'protagonist',
+          relationships: [],
+          isNew: false,
+          chapterActivity: 'Ascends the tower.',
+          tier: 'main'
+        }
+      ],
+      2
+    )
+    expect(running[0]!.chapterActivity).toEqual({
+      1: 'Arrives at the gates.',
+      2: 'Ascends the tower.'
+    })
+  })
+
+  it('skips empty/whitespace chapterActivity values', () => {
+    const running: ExtractedCharacter[] = []
+    mergeCharacters(
+      running,
+      [
+        {
+          name: 'Elara',
+          aliases: [],
+          description: 'A young mage.',
+          role: 'protagonist',
+          relationships: [],
+          isNew: true,
+          chapterActivity: '   ',
+          tier: 'main'
+        }
+      ],
+      1
+    )
+    expect(running[0]!.chapterActivity).toEqual({})
+  })
+
+  it('overwrites chapterActivity when the same chapter is merged twice', () => {
+    const running: ExtractedCharacter[] = []
+    mergeCharacters(
+      running,
+      [
+        {
+          name: 'Elara',
+          aliases: [],
+          description: 'A young mage.',
+          role: 'protagonist',
+          relationships: [],
+          isNew: true,
+          chapterActivity: 'First draft of activity.',
+          tier: 'main'
+        }
+      ],
+      1
+    )
+    mergeCharacters(
+      running,
+      [
+        {
+          name: 'Elara',
+          aliases: [],
+          description: 'A young mage.',
+          role: 'protagonist',
+          relationships: [],
+          isNew: false,
+          chapterActivity: 'Second draft of activity.',
+          tier: 'main'
+        }
+      ],
+      1
+    )
+    expect(running[0]!.chapterActivity).toEqual({
+      1: 'Second draft of activity.'
+    })
   })
 })
 

@@ -7,10 +7,7 @@ import type {
   VaultProgress
 } from '../../shared/types'
 import { renderCallout } from './callouts'
-import {
-  parseChapterTaggedDescription,
-  synthesizeDescription
-} from './descriptions'
+import { synthesizeDescription } from './descriptions'
 import { buildFrontmatter } from './frontmatter'
 import { stripHeadingMarkers } from './sanitize'
 import {
@@ -83,7 +80,7 @@ function buildCharacterFile(
   const frontmatter = buildFrontmatter(fmFields)
 
   const atAGlance = renderAtAGlance(character)
-  const descriptionSection = renderDescriptionSection(character.description)
+  const descriptionSection = renderDescriptionSection(character)
   const relationshipsSection = renderRelationshipsSection(character, ctx)
   const appearancesSection = renderAppearancesSection(character, ctx)
 
@@ -142,32 +139,50 @@ function renderAtAGlance(character: ExtractedCharacter): string {
   })
 }
 
-function renderDescriptionSection(rawDescription: string): string {
+function renderDescriptionSection(character: ExtractedCharacter): string {
+  const rawDescription = character.description
   const trimmed = rawDescription.trim()
-  if (trimmed.length === 0) {
-    return '*(not specified)*'
-  }
+  const identityParagraph =
+    trimmed.length === 0
+      ? '*(not specified)*'
+      : stripHeadingMarkers(synthesizeDescription(trimmed))
 
-  const blocks = parseChapterTaggedDescription(trimmed)
-  const synthesized = stripHeadingMarkers(synthesizeDescription(trimmed))
+  const activityCallout = renderPerChapterActivityCallout(character)
+  if (!activityCallout) return identityParagraph
+  return `${identityParagraph}\n\n${activityCallout}`
+}
 
-  if (blocks.length < 2) {
-    return synthesized
-  }
+function renderPerChapterActivityCallout(
+  character: ExtractedCharacter
+): string | null {
+  const entries = Object.entries(character.chapterActivity ?? {})
+    .map(([orderStr, activity]) => ({
+      order: Number(orderStr),
+      activity: typeof activity === 'string' ? activity.trim() : ''
+    }))
+    .filter((e) => Number.isFinite(e.order) && e.activity.length > 0)
+    .sort((a, b) => a.order - b.order)
 
-  const perChapterBody = blocks
-    .map(
-      (b) => `**Chapter ${b.chapterOrder}:** ${stripHeadingMarkers(b.text)}`
-    )
-    .join('\n')
-  const perChapterCallout = renderCallout({
-    type: 'note',
-    title: 'Per-chapter detail',
-    body: perChapterBody,
-    foldable: true
+  if (entries.length === 0) return null
+
+  const blocks = entries.map((e) => {
+    const sentences = e.activity
+      .split(/(?<=[.!?])\s+/)
+      .map((s) => s.trim())
+      .filter((s) => s.length > 0)
+    const bullets =
+      sentences.length > 0
+        ? sentences.map((s) => `- ${stripHeadingMarkers(s)}`).join('\n')
+        : `- ${stripHeadingMarkers(e.activity)}`
+    return `**Chapter ${e.order}:**\n${bullets}`
   })
 
-  return `${synthesized}\n\n${perChapterCallout}`
+  return renderCallout({
+    type: 'note',
+    title: 'Per-chapter activity',
+    body: blocks.join('\n\n'),
+    foldable: true
+  })
 }
 
 function renderRelationshipsSection(
@@ -177,33 +192,35 @@ function renderRelationshipsSection(
   if (character.relationships.length === 0) {
     return '*(none recorded)*'
   }
-  return character.relationships
-    .map((rel) => renderRelationshipCallout(rel, ctx, character.name))
-    .join('\n\n')
+  const items = character.relationships.map((rel) =>
+    renderRelationshipLine(rel, ctx, character.name)
+  )
+  return renderCallout({
+    type: 'info',
+    title: `Relationships (${character.relationships.length})`,
+    foldable: true,
+    body: items.join('\n')
+  })
 }
 
-function renderRelationshipCallout(
+function renderRelationshipLine(
   rel: { name: string; relationship: string },
   ctx: CharacterWriteContext,
   sourceName: string
 ): string {
   const relationship = stripHeadingMarkers(rel.relationship)
   const canonical = ctx.characterResolver.resolve(rel.name)
-  let title: string
+  let linkOrName: string
   if (canonical) {
     const filename = ctx.characterFilenames.get(canonical) ?? canonical
-    title = `[[${filename}]]`
+    linkOrName = `[[${filename}]]`
   } else {
     ctx.warnings.push(
       `Unresolved character reference: '${rel.name}' in ${sourceName} relationships`
     )
-    title = rel.name
+    linkOrName = rel.name
   }
-  return renderCallout({
-    type: 'info',
-    title,
-    body: relationship
-  })
+  return `- **${linkOrName}** — ${relationship}`
 }
 
 function renderAppearancesSection(

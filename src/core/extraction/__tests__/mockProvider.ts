@@ -13,6 +13,7 @@ export const OK_CHARACTERS = {
       name: 'Elara',
       aliases: [],
       description: 'A young mage.',
+      chapterActivity: 'Enters the tower. Confronts the scholar.',
       role: 'protagonist',
       relationships: [],
       isNew: true,

@@ -31,6 +31,10 @@ export function mergeCharacters(
   fieldDefs: GenreFieldDef[] = []
 ): void {
   for (const delta of fromChapter) {
+    const activityTrimmed =
+      typeof delta.chapterActivity === 'string'
+        ? delta.chapterActivity.trim()
+        : ''
     const existing = findMatchingCharacter(running, delta)
     if (existing) {
       mergeAliases(existing, delta)
@@ -49,11 +53,20 @@ export function mergeCharacters(
         delta.customFields,
         fieldDefs
       )
+      if (activityTrimmed.length > 0) {
+        if (!existing.chapterActivity) existing.chapterActivity = {}
+        existing.chapterActivity[chapterOrder] = activityTrimmed
+      }
     } else {
+      const initialActivity: Record<number, string> = {}
+      if (activityTrimmed.length > 0) {
+        initialActivity[chapterOrder] = activityTrimmed
+      }
       running.push({
         name: delta.name,
         aliases: dedupePreserveCase(delta.aliases),
         description: delta.description,
+        chapterActivity: initialActivity,
         role: delta.role,
         relationships: dedupeRelationships(delta.relationships),
         firstAppearanceChapter: chapterOrder,

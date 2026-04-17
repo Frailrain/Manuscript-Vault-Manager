@@ -148,6 +148,7 @@ describe('rebuildMergedState', () => {
             role: 'protagonist',
             relationships: [],
             isNew: true,
+            chapterActivity: '',
             tier: 'main'
           }
         ]
@@ -162,6 +163,7 @@ describe('rebuildMergedState', () => {
             role: 'protagonist',
             relationships: [],
             isNew: false,
+            chapterActivity: '',
             tier: 'main'
           }
         ]
@@ -198,6 +200,72 @@ describe('rebuildMergedState', () => {
 
     expect(rebuilt.characters).toHaveLength(1)
     expect(rebuilt.characters[0]!.tier).toBe('minor')
+  })
+
+  it("defaults a stored character delta missing 'chapterActivity' to an empty map on rebuild", () => {
+    const legacyCharacterDelta = {
+      name: 'Elara',
+      aliases: [],
+      description: 'A young mage.',
+      role: 'protagonist',
+      relationships: [],
+      isNew: true,
+      tier: 'main'
+    } as unknown as ExtractedCharacterDelta
+    const contributions: ChapterContribution[] = [
+      {
+        ...emptyContribution('ch-1', 1),
+        characterDeltas: [legacyCharacterDelta]
+      }
+    ]
+    const v1 = buildProjectV1()
+    const rebuilt = rebuildMergedState(contributions, [], v1.chapters)
+
+    expect(rebuilt.characters).toHaveLength(1)
+    expect(rebuilt.characters[0]!.chapterActivity).toEqual({})
+  })
+
+  it('preserves chapterActivity per-chapter under current orders after reorder', () => {
+    const contributions: ChapterContribution[] = [
+      {
+        ...emptyContribution('ch-1', 1),
+        characterDeltas: [
+          {
+            name: 'Elara',
+            aliases: [],
+            description: 'A young mage.',
+            role: 'protagonist',
+            relationships: [],
+            isNew: true,
+            chapterActivity: 'Arrives at the gates.',
+            tier: 'main'
+          }
+        ]
+      },
+      {
+        ...emptyContribution('ch-2', 2),
+        characterDeltas: [
+          {
+            name: 'Elara',
+            aliases: [],
+            description: 'A young mage.',
+            role: 'protagonist',
+            relationships: [],
+            isNew: false,
+            chapterActivity: 'Ascends the tower.',
+            tier: 'main'
+          }
+        ]
+      }
+    ]
+    const v5 = buildProjectV5_reorderedCh2Ch3() // ch-2 now at order 3
+    const rebuilt = rebuildMergedState(contributions, [], v5.chapters)
+
+    expect(rebuilt.characters).toHaveLength(1)
+    expect(rebuilt.characters[0]!.chapterActivity).toEqual({
+      1: 'Arrives at the gates.',
+      3: 'Ascends the tower.'
+    })
   })
 
   it("defaults a stored location delta missing 'parentLocation' to null on rebuild", () => {
