@@ -1,19 +1,28 @@
-import { ipcMain } from 'electron'
+import { BrowserWindow, dialog, ipcMain, shell } from 'electron'
+import { existsSync } from 'node:fs'
+import { basename, join } from 'node:path'
 
 import { runExtraction } from '../../core/extraction'
 import { parseScrivenerProject } from '../../core/scrivener'
-import { syncProject } from '../../core/sync'
+import {
+  buildManifestFromExtraction,
+  readManifest,
+  syncProject,
+  writeManifest
+} from '../../core/sync'
 import { generateVault } from '../../core/vault'
 import type {
   ExtractionProgress,
   ExtractionRunPayload,
+  ManifestSummary,
+  StoredSettings,
   SyncProgress,
   SyncRunPayload,
   VaultGenerateRunPayload,
-  VaultProgress
+  VaultProgress,
+  WriteInitialManifestPayload
 } from '../../shared/types'
-
-const STUB_CHANNELS = ['settings:get', 'settings:set'] as const
+import { getAllSettings, setAllSettings } from '../settings'
 
 export function registerIpcHandlers(): void {
   ipcMain.handle('scrivener:parse', async (_event, projectPath: unknown) => {
@@ -35,7 +44,6 @@ export function registerIpcHandlers(): void {
     }
     return runExtraction(project, provider, {
       onProgress: (progress: ExtractionProgress) => {
-        // Stream plain-data progress to the renderer; no object refs leak.
         event.sender.send('extraction:progress', progress)
       }
     })
@@ -60,6 +68,28 @@ export function registerIpcHandlers(): void {
     })
   })
 
+  ipcMain.handle('vault:hasManifest', (_event, vaultPath: unknown) => {
+    if (typeof vaultPath !== 'string' || vaultPath.length === 0) return false
+    return existsSync(join(vaultPath, '_meta', 'manifest.json'))
+  })
+
+  ipcMain.handle(
+    'vault:readManifestSummary',
+    async (_event, vaultPath: unknown): Promise<ManifestSummary | null> => {
+      if (typeof vaultPath !== 'string' || vaultPath.length === 0) return null
+      try {
+        const manifest = await readManifest(vaultPath)
+        if (!manifest) return null
+        return {
+          lastSyncAt: manifest.lastSyncAt,
+          cumulativeTokenUsage: manifest.cumulativeTokenUsage
+        }
+      } catch {
+        return null
+      }
+    }
+  )
+
   ipcMain.handle('sync:run', async (event, payload: unknown) => {
     if (!payload || typeof payload !== 'object') {
       throw new Error('[sync:run] payload must be an object')
@@ -79,9 +109,71 @@ export function registerIpcHandlers(): void {
     })
   })
 
-  for (const channel of STUB_CHANNELS) {
-    ipcMain.handle(channel, async () => {
-      throw new Error(`[mvm] IPC channel '${channel}' is not yet implemented`)
+  ipcMain.handle('sync:writeInitialManifest', async (_event, payload: unknown) => {
+    if (!payload || typeof payload !== 'object') {
+      throw new Error('[sync:writeInitialManifest] payload must be an object')
+    }
+    const { project, extraction, vaultPath } =
+      payload as Partial<WriteInitialManifestPayload>
+    if (!project || !extraction || !vaultPath) {
+      throw new Error(
+        '[sync:writeInitialManifest] payload must include { project, extraction, vaultPath }'
+      )
+    }
+    const manifest = buildManifestFromExtraction(project, extraction)
+    await writeManifest(vaultPath, manifest)
+    return manifest
+  })
+
+  ipcMain.handle('settings:get', () => getAllSettings())
+  ipcMain.handle('settings:set', (_event, patch: unknown) => {
+    if (!patch || typeof patch !== 'object') {
+      throw new Error('[settings:set] patch must be an object')
+    }
+    return setAllSettings(patch as Partial<StoredSettings>)
+  })
+
+  ipcMain.handle('dialog:pickScrivener', async (event) => {
+    const win = BrowserWindow.fromWebContents(event.sender)
+    if (!win) return null
+    const result = await dialog.showOpenDialog(win, {
+      title: 'Select Scrivener Project',
+      properties: ['openFile', 'openDirectory'],
+      filters: [{ name: 'Scrivener Project', extensions: ['scriv', 'scrivx'] }]
     })
-  }
+    if (result.canceled || result.filePaths.length === 0) return null
+    return result.filePaths[0] ?? null
+  })
+
+  ipcMain.handle('dialog:pickVault', async (event) => {
+    const win = BrowserWindow.fromWebContents(event.sender)
+    if (!win) return null
+    const result = await dialog.showOpenDialog(win, {
+      title:
+        'Select Vault Folder (or choose an empty folder to create a new vault)',
+      properties: ['openDirectory', 'createDirectory']
+    })
+    if (result.canceled || result.filePaths.length === 0) return null
+    return result.filePaths[0] ?? null
+  })
+
+  ipcMain.handle('shell:openVault', async (_event, vaultPath: unknown) => {
+    if (typeof vaultPath !== 'string' || vaultPath.length === 0) {
+      throw new Error('[shell:openVault] vaultPath required')
+    }
+    const vaultName = basename(vaultPath)
+    const obsidianUrl = `obsidian://open?vault=${encodeURIComponent(
+      vaultName
+    )}&path=${encodeURIComponent(vaultPath)}`
+    try {
+      await shell.openExternal(obsidianUrl)
+      return { opened: 'obsidian' as const }
+    } catch {
+      const err = await shell.openPath(vaultPath)
+      if (err) {
+        throw new Error(`Failed to open vault folder: ${err}`)
+      }
+      return { opened: 'folder' as const }
+    }
+  })
 }

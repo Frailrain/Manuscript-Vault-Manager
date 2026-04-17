@@ -4,12 +4,16 @@ import type {
   ExtractionProgress,
   ExtractionRunPayload,
   ExtractionResult,
+  ManifestSummary,
+  StoredSettings,
+  SyncManifest,
   SyncProgress,
   SyncResult,
   SyncRunPayload,
   VaultGenerateRunPayload,
   VaultGenerationResult,
-  VaultProgress
+  VaultProgress,
+  WriteInitialManifestPayload
 } from '../shared/types'
 
 const api = {
@@ -38,7 +42,14 @@ const api = {
       return () => {
         ipcRenderer.off('vault:progress', listener)
       }
-    }
+    },
+    hasManifest: (vaultPath: string): Promise<boolean> =>
+      ipcRenderer.invoke('vault:hasManifest', vaultPath) as Promise<boolean>,
+    readManifestSummary: (vaultPath: string): Promise<ManifestSummary | null> =>
+      ipcRenderer.invoke(
+        'vault:readManifestSummary',
+        vaultPath
+      ) as Promise<ManifestSummary | null>
   },
   sync: {
     run: (payload: SyncRunPayload): Promise<SyncResult> =>
@@ -50,11 +61,34 @@ const api = {
       return () => {
         ipcRenderer.off('sync:progress', listener)
       }
-    }
+    },
+    writeInitialManifest: (
+      payload: WriteInitialManifestPayload
+    ): Promise<SyncManifest> =>
+      ipcRenderer.invoke(
+        'sync:writeInitialManifest',
+        payload
+      ) as Promise<SyncManifest>
   },
   settings: {
-    get: (key: string) => ipcRenderer.invoke('settings:get', key),
-    set: (key: string, value: unknown) => ipcRenderer.invoke('settings:set', key, value)
+    getAll: (): Promise<StoredSettings> =>
+      ipcRenderer.invoke('settings:get') as Promise<StoredSettings>,
+    update: (patch: Partial<StoredSettings>): Promise<StoredSettings> =>
+      ipcRenderer.invoke('settings:set', patch) as Promise<StoredSettings>
+  },
+  dialogs: {
+    pickScrivener: (): Promise<string | null> =>
+      ipcRenderer.invoke('dialog:pickScrivener') as Promise<string | null>,
+    pickVault: (): Promise<string | null> =>
+      ipcRenderer.invoke('dialog:pickVault') as Promise<string | null>
+  },
+  shell: {
+    openVault: (
+      vaultPath: string
+    ): Promise<{ opened: 'obsidian' | 'folder' }> =>
+      ipcRenderer.invoke('shell:openVault', vaultPath) as Promise<{
+        opened: 'obsidian' | 'folder'
+      }>
   }
 }
 

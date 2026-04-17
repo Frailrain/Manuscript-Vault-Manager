@@ -1,12 +1,31 @@
+import { useEffect } from 'react'
+
+import { RunTab } from './components/RunTab'
+import { SettingsTab } from './components/SettingsTab'
+import { TabBar } from './components/TabBar'
+import { TitleBar } from './components/TitleBar'
+import { useLoadSettingsOnMount } from './hooks/useLoadSettingsOnMount'
+import { useProgressSubscription } from './hooks/useProgressSubscription'
+import { useAppStore } from './stores/appStore'
+
 export default function App(): JSX.Element {
+  const theme = useAppStore((s) => s.theme)
+  const activeTab = useAppStore((s) => s.activeTab)
+
+  useLoadSettingsOnMount()
+  useProgressSubscription()
+
+  useEffect(() => {
+    document.documentElement.classList.toggle('dark', theme === 'dark')
+  }, [theme])
+
   return (
-    <div className="flex h-screen w-screen flex-col items-center justify-center bg-slate-950 text-slate-100">
-      <h1 className="text-4xl font-semibold tracking-tight text-sky-400">
-        Manuscript Vault Manager
-      </h1>
-      <p className="mt-3 text-sm text-slate-400">
-        Configuration briefs not yet implemented
-      </p>
+    <div className="flex h-screen w-screen flex-col bg-white text-neutral-900 dark:bg-neutral-900 dark:text-neutral-100">
+      <TitleBar />
+      <TabBar />
+      <div className="flex-1 overflow-y-auto">
+        {activeTab === 'settings' ? <SettingsTab /> : <RunTab />}
+      </div>
     </div>
   )
 }

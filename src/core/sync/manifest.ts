@@ -1,9 +1,14 @@
 import { mkdir, readFile } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 
-import type { SyncManifest } from '../../shared/types'
+import type {
+  ExtractionResult,
+  ScrivenerProject,
+  SyncManifest
+} from '../../shared/types'
 import { writeFileAtomic } from '../vault/atomic'
 import { SyncError } from './errors'
+import { hashChapter } from './hashing'
 
 const MANIFEST_RELATIVE = '_meta/manifest.json'
 const CURRENT_VERSION = 1
@@ -48,6 +53,30 @@ export async function readManifest(
     )
   }
   return parsed as SyncManifest
+}
+
+export function buildManifestFromExtraction(
+  project: ScrivenerProject,
+  extraction: ExtractionResult
+): SyncManifest {
+  return {
+    version: 1,
+    lastSyncAt: new Date().toISOString(),
+    projectName: project.projectName,
+    chapters: project.chapters.map((ch) => ({
+      chapterUuid: ch.uuid,
+      chapterOrder: ch.order,
+      chapterTitle: ch.title,
+      chapterHash: hashChapter(ch),
+      sceneHashes: ch.scenes.map((s) => ({ uuid: s.uuid, hash: s.contentHash }))
+    })),
+    chapterContributions: extraction.chapterContributions,
+    cumulativeTokenUsage: { ...extraction.tokenUsage },
+    lastExtractionSnapshot: {
+      chapters: extraction.chapters,
+      warnings: extraction.warnings
+    }
+  }
 }
 
 export async function writeManifest(

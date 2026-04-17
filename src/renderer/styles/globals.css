@@ -8,3 +8,16 @@ body,
   height: 100%;
   margin: 0;
 }
+
+@keyframes progress-indeterminate {
+  0% {
+    left: -33%;
+  }
+  100% {
+    left: 100%;
+  }
+}
+
+.progress-indeterminate {
+  animation: progress-indeterminate 1.2s ease-in-out infinite;
+}

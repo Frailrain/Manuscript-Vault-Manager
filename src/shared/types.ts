@@ -278,6 +278,31 @@ export interface SyncRunPayload {
   options: SyncOptions
 }
 
+export interface AppSettings {
+  scrivenerPath: string
+  vaultPath: string
+  novelTitle: string
+  providerKind: LLMProviderKind
+  apiKey: string
+  model: string
+  baseURL: string
+}
+
+export interface StoredSettings extends AppSettings {
+  theme: 'light' | 'dark'
+}
+
+export interface ManifestSummary {
+  lastSyncAt: string
+  cumulativeTokenUsage: TokenUsage
+}
+
+export interface WriteInitialManifestPayload {
+  project: ScrivenerProject
+  extraction: ExtractionResult
+  vaultPath: string
+}
+
 declare global {
   interface Window {
     mvm: {
@@ -289,14 +314,24 @@ declare global {
       vault: {
         generate: (payload: VaultGenerateRunPayload) => Promise<VaultGenerationResult>
         onProgress: (cb: (progress: VaultProgress) => void) => () => void
+        hasManifest: (vaultPath: string) => Promise<boolean>
+        readManifestSummary: (vaultPath: string) => Promise<ManifestSummary | null>
       }
       sync: {
         run: (payload: SyncRunPayload) => Promise<SyncResult>
         onProgress: (cb: (progress: SyncProgress) => void) => () => void
+        writeInitialManifest: (payload: WriteInitialManifestPayload) => Promise<SyncManifest>
       }
       settings: {
-        get: (key: string) => Promise<unknown>
-        set: (key: string, value: unknown) => Promise<unknown>
+        getAll: () => Promise<StoredSettings>
+        update: (patch: Partial<StoredSettings>) => Promise<StoredSettings>
+      }
+      dialogs: {
+        pickScrivener: () => Promise<string | null>
+        pickVault: () => Promise<string | null>
+      }
+      shell: {
+        openVault: (vaultPath: string) => Promise<{ opened: 'obsidian' | 'folder' }>
       }
     }
   }

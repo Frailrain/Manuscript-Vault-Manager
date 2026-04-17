@@ -1,6 +1,11 @@
 export { syncProject } from './sync'
 export { SyncError } from './errors'
-export { readManifest, writeManifest, manifestPath } from './manifest'
+export {
+  readManifest,
+  writeManifest,
+  manifestPath,
+  buildManifestFromExtraction
+} from './manifest'
 export { diffProject } from './diff'
 export { hashChapter } from './hashing'
 export { rebuildMergedState, type RebuiltMergedState } from './rebuild'
