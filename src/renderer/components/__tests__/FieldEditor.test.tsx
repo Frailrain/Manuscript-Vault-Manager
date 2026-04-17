@@ -55,8 +55,8 @@ describe('<FieldEditor />', () => {
     render(
       <FieldEditor fields={BASE_FIELDS} entityLabel="character" onChange={() => {}} />
     )
-    expect(screen.getByTestId('field-key-0').textContent).toBe('level')
-    expect(screen.getByTestId('field-key-1').textContent).toBe('class')
+    expect(screen.getByTestId('field-key-0').textContent).toBe('key: level')
+    expect(screen.getByTestId('field-key-1').textContent).toBe('key: class')
   })
 
   it('typing in a label re-derives the key', async () => {

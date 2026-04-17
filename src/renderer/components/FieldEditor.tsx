@@ -83,20 +83,13 @@ export function FieldEditor({
                 className={`${INPUT_CLASSES} flex-1`}
                 placeholder="Field label"
               />
-              <span
-                data-testid={`field-key-${idx}`}
-                className="w-36 truncate font-mono text-xs text-neutral-500 dark:text-neutral-400"
-                title={field.key}
-              >
-                {field.key || '—'}
-              </span>
               <select
                 aria-label={`Field ${idx + 1} type`}
                 value={field.type}
                 onChange={(e) =>
                   updateField(idx, { type: e.target.value as GenreFieldType })
                 }
-                className={`${SELECT_CLASSES} w-28`}
+                className={`${SELECT_CLASSES} w-32`}
               >
                 <option value="text">text</option>
                 <option value="number">number</option>
@@ -111,28 +104,37 @@ export function FieldEditor({
                 ×
               </button>
             </div>
-            <button
-              type="button"
-              onClick={() =>
-                setExpandedIdx(expandedIdx === idx ? null : idx)
-              }
-              className="mt-1 text-xs text-sky-600 hover:underline dark:text-sky-400"
-            >
-              {expandedIdx === idx
-                ? 'Hide description'
-                : 'Edit description'}
-            </button>
-            {expandedIdx === idx ? (
-              <textarea
-                aria-label={`Field ${idx + 1} description`}
-                value={field.description}
-                onChange={(e) =>
-                  updateField(idx, { description: e.target.value })
+            <div className="mt-1 flex items-center gap-3">
+              <span
+                data-testid={`field-key-${idx}`}
+                className="font-mono text-xs text-neutral-500 dark:text-neutral-400"
+                title={field.key}
+              >
+                key: {field.key || '—'}
+              </span>
+              <button
+                type="button"
+                onClick={() =>
+                  setExpandedIdx(expandedIdx === idx ? null : idx)
                 }
-                rows={2}
-                className={`${TEXTAREA_CLASSES} mt-2`}
-                placeholder="How the LLM should interpret this field…"
-              />
+                className="text-xs text-sky-600 hover:underline dark:text-sky-400"
+              >
+                {expandedIdx === idx ? 'Hide description' : 'Edit description'}
+              </button>
+            </div>
+            {expandedIdx === idx ? (
+              <div className="mt-2">
+                <textarea
+                  aria-label={`Field ${idx + 1} description`}
+                  value={field.description}
+                  onChange={(e) =>
+                    updateField(idx, { description: e.target.value })
+                  }
+                  rows={3}
+                  placeholder="Tell Claude what this field means..."
+                  className={TEXTAREA_CLASSES}
+                />
+              </div>
             ) : null}
           </div>
         ))

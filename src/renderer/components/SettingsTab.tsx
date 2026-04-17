@@ -171,7 +171,14 @@ export function SettingsTab(): JSX.Element {
         </div>
       </FieldGroup>
 
-      <FieldGroup label="LLM Provider">
+      <FieldGroup
+        label="LLM Provider"
+        helpText={
+          settings.providerKind === 'anthropic'
+            ? 'Use your Anthropic API key directly with Claude models.'
+            : 'Works with any OpenAI-compatible endpoint: OpenAI, OpenRouter (Gemini, Mistral, Llama), Ollama, LM Studio, Groq, Together, Fireworks, and more.'
+        }
+      >
         <select
           value={settings.providerKind}
           onChange={(e) =>
@@ -213,7 +220,7 @@ export function SettingsTab(): JSX.Element {
             type="text"
             value={settings.model}
             onChange={(e) => setSettings({ model: e.target.value })}
-            placeholder="gpt-5.4, qwen-2.5-72b-instruct, etc."
+            placeholder="gpt-5.4, qwen-2.5-72b-instruct, meta-llama/llama-3.3-70b, google/gemini-2.0-pro-exp..."
             className={INPUT_CLASSES}
           />
         )}
@@ -224,11 +231,27 @@ export function SettingsTab(): JSX.Element {
           label="Base URL"
           helpText={
             <>
+              <strong>Cloud APIs:</strong>
+              <br />
               OpenAI: https://api.openai.com/v1
               <br />
-              OpenRouter: https://openrouter.ai/api/v1
+              OpenRouter (covers Gemini, Mistral, Llama, Qwen, etc.): https://openrouter.ai/api/v1
               <br />
-              Ollama (local): http://localhost:11434/v1
+              Groq: https://api.groq.com/openai/v1
+              <br />
+              Together: https://api.together.xyz/v1
+              <br />
+              <br />
+              <strong>Local:</strong>
+              <br />
+              Ollama: http://localhost:11434/v1
+              <br />
+              LM Studio: http://localhost:1234/v1
+              <br />
+              <br />
+              <strong>Note on Gemini:</strong> Google&apos;s native Gemini API uses a
+              different format. Use OpenRouter (which proxies Gemini in
+              OpenAI format) or Google AI Studio&apos;s OpenAI-compatible endpoint.
             </>
           }
         >
