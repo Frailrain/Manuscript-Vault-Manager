@@ -1,4 +1,4 @@
-import type { GenreFieldDef } from './presets'
+import type { GenreFieldDef, GlossaryEntry } from './presets'
 
 export type CustomFieldValue = string | number | string[]
 
@@ -53,7 +53,11 @@ export interface LLMProviderConfig {
   customCharacterFields?: GenreFieldDef[]
   /** Genre-preset or custom location fields to extract. */
   customLocationFields?: GenreFieldDef[]
+  /** Genre glossary — disambiguation hints injected into every pass prompt. */
+  glossary?: GlossaryEntry[]
 }
+
+export type CharacterTier = 'main' | 'secondary' | 'minor'
 
 export interface ExtractedCharacter {
   name: string
@@ -63,6 +67,8 @@ export interface ExtractedCharacter {
   relationships: Array<{ name: string; relationship: string }>
   firstAppearanceChapter: number
   appearances: number[]
+  /** Narrative-weight classification. Highest-wins across chapters. */
+  tier: CharacterTier
   /** Genre-preset extracted fields, keyed by field.key. Empty if none configured. */
   customFields: Record<string, CustomFieldValue>
 }
@@ -73,6 +79,8 @@ export interface ExtractedLocation {
   significance: string
   firstAppearanceChapter: number
   appearances: number[]
+  /** Canonical name of the containing location, or null for top-level locations. */
+  parentLocation: string | null
   /** Genre-preset extracted fields, keyed by field.key. Empty if none configured. */
   customFields: Record<string, CustomFieldValue>
 }
@@ -99,6 +107,8 @@ export interface ExtractedCharacterDelta {
   role: string
   relationships: Array<{ name: string; relationship: string }>
   isNew: boolean
+  /** Narrative-weight classification in this chapter. */
+  tier: CharacterTier
   /** Genre-preset extracted fields, keyed by field.key. */
   customFields?: Record<string, CustomFieldValue>
 }
@@ -108,6 +118,8 @@ export interface ExtractedLocationDelta {
   description: string
   significance: string
   isNew: boolean
+  /** Canonical name of the containing location, or null for top-level locations. */
+  parentLocation: string | null
   /** Genre-preset extracted fields, keyed by field.key. */
   customFields?: Record<string, CustomFieldValue>
 }

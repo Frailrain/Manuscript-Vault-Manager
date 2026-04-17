@@ -2,7 +2,9 @@ import { describe, expect, it } from 'vitest'
 
 import type {
   ChapterContribution,
-  ChapterExtraction
+  ChapterExtraction,
+  ExtractedCharacterDelta,
+  ExtractedLocationDelta
 } from '../../../shared/types'
 import { rebuildMergedState } from '../rebuild'
 import {
@@ -145,7 +147,8 @@ describe('rebuildMergedState', () => {
             description: 'A young mage.',
             role: 'protagonist',
             relationships: [],
-            isNew: true
+            isNew: true,
+            tier: 'main'
           }
         ]
       },
@@ -158,7 +161,8 @@ describe('rebuildMergedState', () => {
             description: 'A young mage.',
             role: 'protagonist',
             relationships: [],
-            isNew: false
+            isNew: false,
+            tier: 'main'
           }
         ]
       }
@@ -171,5 +175,49 @@ describe('rebuildMergedState', () => {
     expect(elara.name).toBe('Elara')
     expect(elara.appearances).toEqual([1, 3])
     expect(elara.firstAppearanceChapter).toBe(1)
+  })
+
+  it("defaults a stored character delta missing 'tier' to 'minor' on rebuild", () => {
+    // Simulates a contribution persisted before tier was added to the schema.
+    const legacyCharacterDelta = {
+      name: 'Elara',
+      aliases: [],
+      description: 'A young mage.',
+      role: 'protagonist',
+      relationships: [],
+      isNew: true
+    } as unknown as ExtractedCharacterDelta
+    const contributions: ChapterContribution[] = [
+      {
+        ...emptyContribution('ch-1', 1),
+        characterDeltas: [legacyCharacterDelta]
+      }
+    ]
+    const v1 = buildProjectV1()
+    const rebuilt = rebuildMergedState(contributions, [], v1.chapters)
+
+    expect(rebuilt.characters).toHaveLength(1)
+    expect(rebuilt.characters[0]!.tier).toBe('minor')
+  })
+
+  it("defaults a stored location delta missing 'parentLocation' to null on rebuild", () => {
+    // Simulates a contribution persisted before parentLocation was added.
+    const legacyLocationDelta = {
+      name: 'The Tower',
+      description: 'Tall.',
+      significance: '',
+      isNew: true
+    } as unknown as ExtractedLocationDelta
+    const contributions: ChapterContribution[] = [
+      {
+        ...emptyContribution('ch-1', 1),
+        locationDeltas: [legacyLocationDelta]
+      }
+    ]
+    const v1 = buildProjectV1()
+    const rebuilt = rebuildMergedState(contributions, [], v1.chapters)
+
+    expect(rebuilt.locations).toHaveLength(1)
+    expect(rebuilt.locations[0]!.parentLocation).toBeNull()
   })
 })

@@ -4,6 +4,7 @@ export type JSONSchemaProperty =
   | { type: 'number'; description?: string }
   | { type: 'boolean'; description?: string }
   | { type: 'array'; items: JSONSchemaProperty; description?: string }
+  | { type: ['string', 'null']; description?: string }
   | {
       type: 'object'
       properties: Record<string, JSONSchemaProperty>

@@ -1,4 +1,4 @@
-import type { GenreFieldDef } from '../../shared/presets'
+import type { GenreFieldDef, GlossaryEntry } from '../../shared/presets'
 import type {
   ChapterContribution,
   ChapterExtraction,
@@ -67,13 +67,15 @@ export async function runExtraction(
   }
   return runExtractionWithProvider(project, provider, options, {
     customCharacterFields: providerConfig.customCharacterFields ?? [],
-    customLocationFields: providerConfig.customLocationFields ?? []
+    customLocationFields: providerConfig.customLocationFields ?? [],
+    glossary: providerConfig.glossary ?? []
   })
 }
 
 export interface ExtractionFieldDefs {
   customCharacterFields: GenreFieldDef[]
   customLocationFields: GenreFieldDef[]
+  glossary: GlossaryEntry[]
 }
 
 export async function runExtractionWithProvider(
@@ -82,7 +84,8 @@ export async function runExtractionWithProvider(
   options: RunExtractionOptions = {},
   fieldDefs: ExtractionFieldDefs = {
     customCharacterFields: [],
-    customLocationFields: []
+    customLocationFields: [],
+    glossary: []
   }
 ): Promise<ExtractionResult> {
   const onProgress = options.onProgress ?? noop
@@ -267,7 +270,8 @@ export async function extractSingleChapter(
   const emitPass = options.emitPass ?? noopPass
   const fieldDefs = options.fieldDefs ?? {
     customCharacterFields: [],
-    customLocationFields: []
+    customLocationFields: [],
+    glossary: []
   }
   const chapterWarnings: string[] = []
   const ctx = buildContext(
@@ -597,7 +601,8 @@ function buildContext(
     currentChapterOrder: currentChapter.order,
     totalChapters: project.chapters.length,
     customCharacterFields: fieldDefs.customCharacterFields,
-    customLocationFields: fieldDefs.customLocationFields
+    customLocationFields: fieldDefs.customLocationFields,
+    glossary: fieldDefs.glossary
   }
 }
 

@@ -4,6 +4,7 @@ import {
   mergeCharacters,
   mergeContinuity,
   mergeLocations,
+  mergeTier,
   mergeTimeline,
   sortTimeline
 } from '../merge'
@@ -25,7 +26,8 @@ describe('mergeCharacters', () => {
         description: 'A young mage.',
         role: 'protagonist',
         relationships: [],
-        isNew: true
+        isNew: true,
+        tier: 'main'
       }
     ]
     const ch2: ExtractedCharacterDelta[] = [
@@ -35,7 +37,8 @@ describe('mergeCharacters', () => {
         description: 'A young mage.',
         role: 'protagonist',
         relationships: [],
-        isNew: false
+        isNew: false,
+        tier: 'main'
       }
     ]
     mergeCharacters(running, ch1, 1)
@@ -57,7 +60,8 @@ describe('mergeCharacters', () => {
           description: 'Young mage.',
           role: 'protagonist',
           relationships: [],
-          isNew: true
+          isNew: true,
+          tier: 'main'
         }
       ],
       1
@@ -71,7 +75,8 @@ describe('mergeCharacters', () => {
           description: 'Robed and bookish.',
           role: 'scholar',
           relationships: [],
-          isNew: true
+          isNew: true,
+          tier: 'main'
         }
       ],
       2
@@ -94,7 +99,8 @@ describe('mergeCharacters', () => {
       description: '',
       role: 'protagonist',
       relationships: [{ name: 'Marek', relationship: 'mentor' }],
-      isNew: ch === 1
+      isNew: ch === 1,
+      tier: 'main'
     })
     mergeCharacters(running, [delta(1)], 1)
     mergeCharacters(running, [delta(2)], 2)
@@ -105,9 +111,267 @@ describe('mergeCharacters', () => {
       relationship: 'mentor'
     })
   })
+
+  it('replaces relationship description when target name reappears with new wording', () => {
+    const running: ExtractedCharacter[] = []
+    mergeCharacters(
+      running,
+      [
+        {
+          name: 'Elara',
+          aliases: [],
+          description: '',
+          role: 'protagonist',
+          relationships: [{ name: 'Marek', relationship: 'mentor' }],
+          isNew: true,
+          tier: 'main'
+        }
+      ],
+      1
+    )
+    mergeCharacters(
+      running,
+      [
+        {
+          name: 'Elara',
+          aliases: [],
+          description: '',
+          role: 'protagonist',
+          relationships: [
+            { name: 'Marek', relationship: 'trusted mentor and former captain' }
+          ],
+          isNew: false,
+          tier: 'main'
+        }
+      ],
+      2
+    )
+
+    expect(running[0]!.relationships).toHaveLength(1)
+    expect(running[0]!.relationships[0]).toEqual({
+      name: 'Marek',
+      relationship: 'trusted mentor and former captain'
+    })
+  })
+
+  it('treats target name case-insensitively when deduping relationships', () => {
+    const running: ExtractedCharacter[] = []
+    mergeCharacters(
+      running,
+      [
+        {
+          name: 'Elara',
+          aliases: [],
+          description: '',
+          role: 'protagonist',
+          relationships: [{ name: 'marek', relationship: 'mentor' }],
+          isNew: true,
+          tier: 'main'
+        }
+      ],
+      1
+    )
+    mergeCharacters(
+      running,
+      [
+        {
+          name: 'Elara',
+          aliases: [],
+          description: '',
+          role: 'protagonist',
+          relationships: [{ name: 'Marek', relationship: 'sworn ally' }],
+          isNew: false,
+          tier: 'main'
+        }
+      ],
+      2
+    )
+
+    expect(running[0]!.relationships).toHaveLength(1)
+    expect(running[0]!.relationships[0]).toEqual({
+      name: 'Marek',
+      relationship: 'sworn ally'
+    })
+  })
+
+  it('keeps relationships to different target names as separate entries', () => {
+    const running: ExtractedCharacter[] = []
+    mergeCharacters(
+      running,
+      [
+        {
+          name: 'Elara',
+          aliases: [],
+          description: '',
+          role: 'protagonist',
+          relationships: [
+            { name: 'Marek', relationship: 'mentor' },
+            { name: 'Lirien', relationship: 'rival' }
+          ],
+          isNew: true,
+          tier: 'main'
+        }
+      ],
+      1
+    )
+
+    expect(running[0]!.relationships).toHaveLength(2)
+    expect(running[0]!.relationships.map((r) => r.name).sort()).toEqual([
+      'Lirien',
+      'Marek'
+    ])
+  })
+
+  it('promotes a character when a later chapter classifies them at a higher tier', () => {
+    const running: ExtractedCharacter[] = []
+    mergeCharacters(
+      running,
+      [
+        {
+          name: 'Vorn',
+          aliases: [],
+          description: '',
+          role: 'guard',
+          relationships: [],
+          isNew: true,
+          tier: 'minor'
+        }
+      ],
+      1
+    )
+    mergeCharacters(
+      running,
+      [
+        {
+          name: 'Vorn',
+          aliases: [],
+          description: '',
+          role: 'mentor',
+          relationships: [],
+          isNew: false,
+          tier: 'main'
+        }
+      ],
+      2
+    )
+
+    expect(running[0]!.tier).toBe('main')
+  })
+
+  it('does not demote a character when a later chapter classifies them lower', () => {
+    const running: ExtractedCharacter[] = []
+    mergeCharacters(
+      running,
+      [
+        {
+          name: 'Elara',
+          aliases: [],
+          description: '',
+          role: 'protagonist',
+          relationships: [],
+          isNew: true,
+          tier: 'main'
+        }
+      ],
+      1
+    )
+    mergeCharacters(
+      running,
+      [
+        {
+          name: 'Elara',
+          aliases: [],
+          description: '',
+          role: 'protagonist',
+          relationships: [],
+          isNew: false,
+          tier: 'minor'
+        }
+      ],
+      2
+    )
+
+    expect(running[0]!.tier).toBe('main')
+  })
+})
+
+describe('mergeTier', () => {
+  it('returns the higher rank when incoming exceeds existing', () => {
+    expect(mergeTier('minor', 'secondary')).toBe('secondary')
+    expect(mergeTier('secondary', 'main')).toBe('main')
+    expect(mergeTier('minor', 'main')).toBe('main')
+  })
+
+  it('keeps the existing tier when incoming is lower or equal', () => {
+    expect(mergeTier('main', 'secondary')).toBe('main')
+    expect(mergeTier('secondary', 'minor')).toBe('secondary')
+    expect(mergeTier('main', 'main')).toBe('main')
+  })
 })
 
 describe('mergeLocations', () => {
+  it('preserves parentLocation when later chapters provide null', () => {
+    const running: ExtractedLocation[] = []
+    mergeLocations(
+      running,
+      [
+        {
+          name: 'Throne Room',
+          description: 'Vaulted hall.',
+          significance: '',
+          isNew: true,
+          parentLocation: 'Iron Palace'
+        }
+      ],
+      1
+    )
+    mergeLocations(
+      running,
+      [
+        {
+          name: 'Throne Room',
+          description: 'Vaulted hall.',
+          significance: '',
+          isNew: false,
+          parentLocation: null
+        }
+      ],
+      2
+    )
+    expect(running[0]!.parentLocation).toBe('Iron Palace')
+  })
+
+  it('refines parentLocation when a later chapter provides a more specific parent', () => {
+    const running: ExtractedLocation[] = []
+    mergeLocations(
+      running,
+      [
+        {
+          name: 'Defensive Line',
+          description: 'A row of trenches.',
+          significance: '',
+          isNew: true,
+          parentLocation: null
+        }
+      ],
+      1
+    )
+    mergeLocations(
+      running,
+      [
+        {
+          name: 'Defensive Line',
+          description: 'A row of trenches.',
+          significance: '',
+          isNew: false,
+          parentLocation: "Ganston's Crossing"
+        }
+      ],
+      2
+    )
+    expect(running[0]!.parentLocation).toBe("Ganston's Crossing")
+  })
+
   it('appends differing descriptions with chapter tags when the same location appears twice', () => {
     const running: ExtractedLocation[] = []
     const ch1: ExtractedLocationDelta[] = [
@@ -115,7 +379,8 @@ describe('mergeLocations', () => {
         name: 'The Silver Tower',
         description: 'A tall spire glinting in the sun.',
         significance: 'Home of the scholars.',
-        isNew: true
+        isNew: true,
+        parentLocation: null
       }
     ]
     const ch2: ExtractedLocationDelta[] = [
@@ -123,7 +388,8 @@ describe('mergeLocations', () => {
         name: 'The Silver Tower',
         description: 'Its upper floors hold forbidden books.',
         significance: '',
-        isNew: false
+        isNew: false,
+        parentLocation: null
       }
     ]
     mergeLocations(running, ch1, 1)

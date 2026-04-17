@@ -44,7 +44,8 @@ export async function syncProject(
 
   const fieldDefs: ExtractionFieldDefs = {
     customCharacterFields: providerConfig.customCharacterFields ?? [],
-    customLocationFields: providerConfig.customLocationFields ?? []
+    customLocationFields: providerConfig.customLocationFields ?? [],
+    glossary: providerConfig.glossary ?? []
   }
 
   const onProgress = options.onProgress

@@ -11,6 +11,13 @@ export interface GenreFieldDef {
   description: string
 }
 
+export interface GlossaryEntry {
+  /** The ambiguous word or phrase. */
+  term: string
+  /** What the term means in this genre. */
+  meaning: string
+}
+
 export interface GenrePreset {
   id: string
   name: string
@@ -22,6 +29,12 @@ export interface GenrePreset {
   locationSectionLabel: string
   characterFields: GenreFieldDef[]
   locationFields: GenreFieldDef[]
+  /**
+   * Genre-specific vocabulary hints injected into extraction prompts. Helps the
+   * model disambiguate terms like "boss", "mate", or "bond" that carry a
+   * technical meaning inside the genre.
+   */
+  glossary: GlossaryEntry[]
 }
 
 export const GENRE_PRESETS: GenrePreset[] = [
@@ -32,7 +45,8 @@ export const GENRE_PRESETS: GenrePreset[] = [
     characterSectionLabel: '',
     locationSectionLabel: '',
     characterFields: [],
-    locationFields: []
+    locationFields: [],
+    glossary: []
   },
   {
     id: 'litrpg',
@@ -70,20 +84,70 @@ export const GENRE_PRESETS: GenrePreset[] = [
           'Numerical stats or attributes if the story uses an explicit stat block.'
       }
     ],
-    locationFields: [
+    locationFields: [],
+    glossary: [
       {
-        key: 'danger-level',
-        label: 'Danger Level',
-        type: 'text',
-        description:
-          "Rating, tier, zone name, or descriptor of the location's difficulty or threat."
+        term: 'boss',
+        meaning:
+          'A high-tier monster, dungeon boss, or major antagonist encounter — NOT a workplace supervisor.'
       },
       {
-        key: 'notable-loot',
-        label: 'Notable Loot',
-        type: 'list',
-        description:
-          'Named items, resources, or rewards found here.'
+        term: 'class',
+        meaning:
+          'A character archetype or progression path (Mage, Warrior, Cultivator, etc.) — NOT a school lesson or social class.'
+      },
+      {
+        term: 'level',
+        meaning:
+          'A character power tier in the game system — NOT a floor of a building.'
+      },
+      {
+        term: 'party',
+        meaning: 'An adventuring group — NOT a social gathering.'
+      },
+      {
+        term: 'raid',
+        meaning:
+          'A coordinated group combat event — NOT a military invasion of a village.'
+      },
+      {
+        term: 'farm',
+        meaning:
+          'Grinding monsters or resources — NOT agricultural work.'
+      },
+      {
+        term: 'grind',
+        meaning:
+          'Repeated combat or activity for progression — NOT physical dance or labor.'
+      },
+      {
+        term: 'dungeon',
+        meaning:
+          'An instanced combat location with monsters and loot — NOT a prison cell.'
+      },
+      {
+        term: 'mob',
+        meaning:
+          'A monster enemy (short for "mobile") — NOT a crowd of people.'
+      },
+      {
+        term: 'tank',
+        meaning:
+          'A melee character absorbing damage for the party — NOT an armored vehicle.'
+      },
+      {
+        term: 'dps',
+        meaning: 'Damage-dealer role or damage-per-second metric.'
+      },
+      {
+        term: 'healer',
+        meaning:
+          'A character focused on restoring health — profession context.'
+      },
+      {
+        term: 'skill',
+        meaning:
+          'A named learnable ability in the progression system, not just general competence.'
       }
     ]
   },
@@ -131,6 +195,33 @@ export const GENRE_PRESETS: GenrePreset[] = [
         description:
           'The dominant atmosphere or feeling of this location.'
       }
+    ],
+    glossary: [
+      {
+        term: 'mate',
+        meaning:
+          'A destined romantic/magical partner in fated-mate fantasy — NOT a friend or workplace colleague.'
+      },
+      {
+        term: 'bond',
+        meaning:
+          'A magical or soul-level connection between two characters — NOT an adhesive or financial instrument.'
+      },
+      {
+        term: 'heat',
+        meaning:
+          'A period of intense attraction or reproductive cycle in shifter romance — NOT just warm temperature (in context).'
+      },
+      {
+        term: 'alpha',
+        meaning:
+          'A dominant role or archetype, often in shifter/werewolf romance.'
+      },
+      {
+        term: 'pack',
+        meaning:
+          'A social group of shifters or supernatural beings — NOT a container.'
+      }
     ]
   },
   {
@@ -168,6 +259,23 @@ export const GENRE_PRESETS: GenrePreset[] = [
         type: 'list',
         description:
           'Clues, objects, or evidence located here.'
+      }
+    ],
+    glossary: [
+      {
+        term: 'alibi',
+        meaning:
+          'A claimed location or activity during a crime — legally significant.'
+      },
+      {
+        term: 'motive',
+        meaning:
+          'A reason to commit a crime — narratively important; track carefully.'
+      },
+      {
+        term: 'suspect',
+        meaning:
+          'A person under investigation — can be definitive or speculative.'
       }
     ]
   },
@@ -215,6 +323,28 @@ export const GENRE_PRESETS: GenrePreset[] = [
         description:
           'Political or religious faction dominant here.'
       }
+    ],
+    glossary: [
+      {
+        term: 'bloodline',
+        meaning:
+          'A hereditary lineage with magical or political significance.'
+      },
+      {
+        term: 'prophecy',
+        meaning:
+          'A foretelling that shapes the narrative — worth tracking across chapters.'
+      },
+      {
+        term: 'artifact',
+        meaning:
+          'A named magical object with story significance — NOT any generic item.'
+      },
+      {
+        term: 'faction',
+        meaning:
+          'An organized political, religious, or military group.'
+      }
     ]
   },
   {
@@ -224,7 +354,8 @@ export const GENRE_PRESETS: GenrePreset[] = [
     characterSectionLabel: 'Tracking',
     locationSectionLabel: 'Tracking',
     characterFields: [],
-    locationFields: []
+    locationFields: [],
+    glossary: []
   }
 ]
 

@@ -45,6 +45,7 @@ function describeChanges(changes: ChapterChange[]): string {
 function buildProviderConfig(
   settings: ReturnType<typeof useAppStore.getState>['settings']
 ): LLMProviderConfig {
+  const preset = findPreset(settings.genrePresetId)
   return {
     kind: settings.providerKind,
     apiKey: settings.apiKey,
@@ -53,7 +54,8 @@ function buildProviderConfig(
       ? { baseURL: settings.baseURL }
       : {}),
     customCharacterFields: settings.characterFields,
-    customLocationFields: settings.locationFields
+    customLocationFields: settings.locationFields,
+    glossary: preset?.glossary ?? []
   }
 }
 

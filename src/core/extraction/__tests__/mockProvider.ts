@@ -15,7 +15,8 @@ export const OK_CHARACTERS = {
       description: 'A young mage.',
       role: 'protagonist',
       relationships: [],
-      isNew: true
+      isNew: true,
+      tier: 'main'
     }
   ]
 }
@@ -26,7 +27,8 @@ export const OK_LOCATIONS = {
       name: 'Silver Tower',
       description: 'A tall spire.',
       significance: 'Home of the scholars.',
-      isNew: true
+      isNew: true,
+      parentLocation: null
     }
   ]
 }

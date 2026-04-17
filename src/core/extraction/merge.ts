@@ -1,5 +1,6 @@
 import type { GenreFieldDef } from '../../shared/presets'
 import type {
+  CharacterTier,
   ChapterExtraction,
   ContinuityIssue,
   CustomFieldValue,
@@ -9,6 +10,19 @@ import type {
 } from '../../shared/types'
 import type { ExtractedCharacterDelta, ExtractedLocationDelta } from './passes'
 import type { ContinuityPassResult, TimelinePassResult } from './passes'
+
+const TIER_RANK: Record<CharacterTier, number> = {
+  main: 3,
+  secondary: 2,
+  minor: 1
+}
+
+export function mergeTier(
+  existing: CharacterTier,
+  incoming: CharacterTier
+): CharacterTier {
+  return TIER_RANK[incoming] > TIER_RANK[existing] ? incoming : existing
+}
 
 export function mergeCharacters(
   running: ExtractedCharacter[],
@@ -26,6 +40,10 @@ export function mergeCharacters(
         existing.appearances.push(chapterOrder)
       }
       if (delta.role && !existing.role) existing.role = delta.role
+      existing.tier = mergeTier(
+        existing.tier ?? 'minor',
+        normalizeTier(delta.tier)
+      )
       existing.customFields = mergeCustomFields(
         existing.customFields,
         delta.customFields,
@@ -40,10 +58,17 @@ export function mergeCharacters(
         relationships: dedupeRelationships(delta.relationships),
         firstAppearanceChapter: chapterOrder,
         appearances: [chapterOrder],
+        tier: normalizeTier(delta.tier),
         customFields: mergeCustomFields({}, delta.customFields, fieldDefs)
       })
     }
   }
+}
+
+function normalizeTier(tier: CharacterTier | undefined): CharacterTier {
+  return tier === 'main' || tier === 'secondary' || tier === 'minor'
+    ? tier
+    : 'minor'
 }
 
 export function mergeLocations(
@@ -64,6 +89,9 @@ export function mergeLocations(
       if (!existing.appearances.includes(chapterOrder)) {
         existing.appearances.push(chapterOrder)
       }
+      if (delta.parentLocation) {
+        existing.parentLocation = delta.parentLocation
+      }
       existing.customFields = mergeCustomFields(
         existing.customFields,
         delta.customFields,
@@ -76,6 +104,7 @@ export function mergeLocations(
         significance: delta.significance,
         firstAppearanceChapter: chapterOrder,
         appearances: [chapterOrder],
+        parentLocation: delta.parentLocation ?? null,
         customFields: mergeCustomFields({}, delta.customFields, fieldDefs)
       })
     }
@@ -216,16 +245,19 @@ function mergeRelationships(
   existing: ExtractedCharacter,
   delta: ExtractedCharacterDelta
 ): void {
-  const seen = new Set(
-    existing.relationships.map(
-      (r) => `${normalize(r.name)}|${normalize(r.relationship)}`
-    )
-  )
+  const byName = new Map<string, number>()
+  existing.relationships.forEach((r, idx) => {
+    byName.set(normalize(r.name), idx)
+  })
   for (const rel of delta.relationships) {
-    const key = `${normalize(rel.name)}|${normalize(rel.relationship)}`
-    if (!seen.has(key)) {
+    if (!rel.name || !rel.relationship) continue
+    const key = normalize(rel.name)
+    const priorIdx = byName.get(key)
+    if (priorIdx !== undefined) {
+      existing.relationships[priorIdx] = rel
+    } else {
       existing.relationships.push(rel)
-      seen.add(key)
+      byName.set(key, existing.relationships.length - 1)
     }
   }
 }

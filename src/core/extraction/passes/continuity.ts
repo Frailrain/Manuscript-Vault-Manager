@@ -10,6 +10,7 @@ import {
   priorCharactersDetailedBlock,
   priorLocationsBlock,
   priorSummariesBlock,
+  renderGlossaryBlock,
   type ExtractionContext,
   type PassRunner
 } from './common'
@@ -61,25 +62,27 @@ export const continuityPass: PassRunner<ContinuityPassResult> = {
     'Record continuity errors between this chapter and what has been established in earlier chapters. Return an empty array if none are found.',
   schema: SCHEMA,
   buildPrompts(chapter: ScrivenerChapter, ctx: ExtractionContext) {
-    const userPrompt = [
-      formatChapterHeader(chapter, ctx),
-      '',
-      'Characters established so far (with full descriptions):',
-      priorCharactersDetailedBlock(ctx),
-      '',
-      'Locations established so far:',
-      priorLocationsBlock(ctx),
-      '',
-      'Recent chapter summaries:',
-      priorSummariesBlock(ctx),
-      '',
-      'Current chapter text:',
-      '---',
-      concatenateScenes(chapter),
-      '---',
-      '',
-      'Check for contradictions between this chapter and prior-chapter facts: shifted physical descriptions, impossible timelines, relationship contradictions, location details that do not match. Report only clear contradictions, not stylistic concerns. If none, return an empty issues array.'
-    ].join('\n')
+    const userPrompt =
+      renderGlossaryBlock(ctx.glossary) +
+      [
+        formatChapterHeader(chapter, ctx),
+        '',
+        'Characters established so far (with full descriptions):',
+        priorCharactersDetailedBlock(ctx),
+        '',
+        'Locations established so far:',
+        priorLocationsBlock(ctx),
+        '',
+        'Recent chapter summaries:',
+        priorSummariesBlock(ctx),
+        '',
+        'Current chapter text:',
+        '---',
+        concatenateScenes(chapter),
+        '---',
+        '',
+        'Check for contradictions between this chapter and prior-chapter facts: shifted physical descriptions, impossible timelines, relationship contradictions, location details that do not match. Report only clear contradictions, not stylistic concerns. If none, return an empty issues array.'
+      ].join('\n')
     return { systemPrompt: SYSTEM, userPrompt }
   },
   validate(data: unknown): ContinuityPassResult {

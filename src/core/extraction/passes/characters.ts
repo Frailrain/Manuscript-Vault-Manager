@@ -12,6 +12,7 @@ import {
   formatChapterHeader,
   priorCharactersBlock,
   priorSummariesBlock,
+  renderGlossaryBlock,
   type ExtractionContext,
   type PassRunner
 } from './common'
@@ -27,7 +28,13 @@ export interface CharactersPassResult {
   characters: ExtractedCharacterDelta[]
 }
 
-const SYSTEM = `You are a literary assistant extracting structured character data from a novel manuscript, one chapter at a time. You have access to a list of characters already identified in previous chapters; prefer linking to existing characters (by canonical name) rather than creating near-duplicates. Return data via the provided tool. Be factual and sparse — do not invent traits not stated or clearly implied in the text.`
+const SYSTEM = `You are a literary assistant extracting structured character data from a novel manuscript, one chapter at a time. You have access to a list of characters already identified in previous chapters; prefer linking to existing characters (by canonical name) rather than creating near-duplicates. Return data via the provided tool. Be factual and sparse — do not invent traits not stated or clearly implied in the text.
+
+When classifying characters into tiers:
+- A **main** character is the protagonist, primary antagonist, or a member of the core cast whose arc the book is fundamentally about. Typically fewer than 5 characters per novel.
+- A **secondary** character appears across multiple chapters, has a meaningful story role (mentor, love interest, rival, foil), but the book is not about them.
+- A **minor** character is named but appears in one scene or a handful of scenes without central narrative weight. Shopkeepers, guards, one-off encounters.
+When in doubt between main and secondary, choose secondary. When in doubt between secondary and minor, choose secondary.`
 
 const BASE_ITEM_PROPERTIES: Record<string, JSONSchemaProperty> = {
   name: {
@@ -64,6 +71,12 @@ const BASE_ITEM_PROPERTIES: Record<string, JSONSchemaProperty> = {
   isNew: {
     type: 'boolean',
     description: 'True if this character was not in the prior character list.'
+  },
+  tier: {
+    type: 'string',
+    enum: ['main', 'secondary', 'minor'],
+    description:
+      'Main = protagonist or primary cast, appears frequently and drives plot. Secondary = recurring character with meaningful story role but not central. Minor = named character appearing in one or few scenes without central narrative weight.'
   }
 }
 
@@ -90,7 +103,8 @@ function buildCharactersSchema(ctx: ExtractionContext): JSONSchema {
             'description',
             'role',
             'relationships',
-            'isNew'
+            'isNew',
+            'tier'
           ]
         }
       }
@@ -143,11 +157,12 @@ export const charactersPass: PassRunner<CharactersPassResult> = {
       concatenateScenes(chapter),
       '---',
       '',
-      'Extract every character appearing or meaningfully referenced in this chapter. For characters already known, use their canonical name. For new characters, provide a canonical name and any aliases.'
+      'Extract every character appearing or meaningfully referenced in this chapter. For characters already known, use their canonical name. For new characters, provide a canonical name and any aliases. Classify each character by tier (main / secondary / minor).'
     ]
     const customBlock = renderCustomFieldsPromptBlock(ctx.customCharacterFields)
     if (customBlock.length > 0) sections.push(customBlock)
-    return { systemPrompt: SYSTEM, userPrompt: sections.join('\n') }
+    const userPrompt = renderGlossaryBlock(ctx.glossary) + sections.join('\n')
+    return { systemPrompt: SYSTEM, userPrompt }
   },
   validate(data: unknown, ctx?: ExtractionContext): CharactersPassResult {
     const fieldDefs = ctx?.customCharacterFields ?? []
@@ -177,7 +192,11 @@ export const charactersPass: PassRunner<CharactersPassResult> = {
                 )
               }))
           : [],
-        isNew: typeof c.isNew === 'boolean' ? c.isNew : true
+        isNew: typeof c.isNew === 'boolean' ? c.isNew : true,
+        tier:
+          c.tier === 'main' || c.tier === 'secondary' || c.tier === 'minor'
+            ? c.tier
+            : 'minor'
       }
       if (customFields !== undefined) delta.customFields = customFields
       return delta

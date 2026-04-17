@@ -87,6 +87,7 @@ export function buildMiniExtraction(): ExtractionResult {
         ],
         firstAppearanceChapter: 1,
         appearances: [1, 2, 3],
+        tier: 'main',
         customFields: {}
       },
       {
@@ -99,6 +100,7 @@ export function buildMiniExtraction(): ExtractionResult {
         ],
         firstAppearanceChapter: 1,
         appearances: [1, 2],
+        tier: 'secondary',
         customFields: {}
       },
       {
@@ -109,6 +111,7 @@ export function buildMiniExtraction(): ExtractionResult {
         relationships: [],
         firstAppearanceChapter: 3,
         appearances: [3],
+        tier: 'secondary',
         customFields: {}
       }
     ],
@@ -119,6 +122,7 @@ export function buildMiniExtraction(): ExtractionResult {
         significance: 'Where Elara is trained.',
         firstAppearanceChapter: 1,
         appearances: [1],
+        parentLocation: null,
         customFields: {}
       },
       {
@@ -128,6 +132,7 @@ export function buildMiniExtraction(): ExtractionResult {
         significance: 'Home of the Archivist and the banned texts.',
         firstAppearanceChapter: 3,
         appearances: [3],
+        parentLocation: null,
         customFields: {}
       }
     ],

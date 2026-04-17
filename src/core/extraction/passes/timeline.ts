@@ -8,6 +8,7 @@ import {
   ensureStringArray,
   formatChapterHeader,
   priorSummariesBlock,
+  renderGlossaryBlock,
   type ExtractionContext,
   type PassRunner
 } from './common'
@@ -63,19 +64,21 @@ export const timelinePass: PassRunner<TimelinePassResult> = {
     'Summarise the chapter and list its in-order plot events, plus the characters and locations that appear.',
   schema: SCHEMA,
   buildPrompts(chapter: ScrivenerChapter, ctx: ExtractionContext) {
-    const userPrompt = [
-      formatChapterHeader(chapter, ctx),
-      '',
-      'Recent chapter summaries:',
-      priorSummariesBlock(ctx),
-      '',
-      'Chapter text:',
-      '---',
-      concatenateScenes(chapter),
-      '---',
-      '',
-      'Summarise this chapter in 2-4 sentences. List the plot events in order, numbering them starting at 1. Name the characters and locations that appear, using canonical names from prior chapters where applicable.'
-    ].join('\n')
+    const userPrompt =
+      renderGlossaryBlock(ctx.glossary) +
+      [
+        formatChapterHeader(chapter, ctx),
+        '',
+        'Recent chapter summaries:',
+        priorSummariesBlock(ctx),
+        '',
+        'Chapter text:',
+        '---',
+        concatenateScenes(chapter),
+        '---',
+        '',
+        'Summarise this chapter in 2-4 sentences. List the plot events in order, numbering them starting at 1. Name the characters and locations that appear, using canonical names from prior chapters where applicable.'
+      ].join('\n')
     return { systemPrompt: SYSTEM, userPrompt }
   },
   validate(data: unknown): TimelinePassResult {

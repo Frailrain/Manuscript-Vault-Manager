@@ -36,6 +36,23 @@ describe('GENRE_PRESETS', () => {
     expect(spells?.type).toBe('list')
   })
 
+  it('litrpg has 4 character fields and 0 location fields', () => {
+    const preset = findPreset('litrpg')!
+    expect(preset.characterFields).toHaveLength(4)
+    expect(preset.locationFields).toHaveLength(0)
+    expect(preset.characterFields.find((f) => f.key === 'danger-level')).toBeUndefined()
+    expect(preset.characterFields.find((f) => f.key === 'notable-loot')).toBeUndefined()
+  })
+
+  it('every preset declares a glossary array', () => {
+    for (const preset of GENRE_PRESETS) {
+      expect(Array.isArray(preset.glossary)).toBe(true)
+    }
+    expect(findPreset('litrpg')!.glossary.length).toBeGreaterThan(0)
+    expect(findPreset('none')!.glossary).toEqual([])
+    expect(findPreset('custom')!.glossary).toEqual([])
+  })
+
   it('every field key is in the hyphenated machine-key form', () => {
     for (const preset of GENRE_PRESETS) {
       for (const field of [

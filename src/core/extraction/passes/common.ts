@@ -1,4 +1,4 @@
-import type { GenreFieldDef } from '../../../shared/presets'
+import type { GenreFieldDef, GlossaryEntry } from '../../../shared/presets'
 import type { ScrivenerChapter } from '../../../shared/types'
 import type { JSONSchema } from '../providers'
 
@@ -22,6 +22,7 @@ export interface ExtractionContext {
   totalChapters: number
   customCharacterFields: GenreFieldDef[]
   customLocationFields: GenreFieldDef[]
+  glossary: GlossaryEntry[]
 }
 
 export interface PassRunner<T> {
@@ -85,6 +86,15 @@ export function priorCharactersDetailedBlock(ctx: ExtractionContext): string {
 export function priorLocationsBlock(ctx: ExtractionContext): string {
   if (ctx.priorLocations.length === 0) return 'None yet'
   return JSON.stringify(ctx.priorLocations, null, 2)
+}
+
+export function renderGlossaryBlock(glossary: GlossaryEntry[]): string {
+  if (glossary.length === 0) return ''
+  const lines = [
+    'Genre vocabulary — apply these meanings when you encounter these terms:',
+    ...glossary.map((g) => `- **${g.term}**: ${g.meaning}`)
+  ]
+  return lines.join('\n') + '\n\n'
 }
 
 export function ensureObject(data: unknown, label: string): Record<string, unknown> {
