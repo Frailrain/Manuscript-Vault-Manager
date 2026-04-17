@@ -242,7 +242,12 @@ describe('generateVault', () => {
       novelTitle: 'Mini Test Novel'
     })
     const silverTower = await readFile(
-      join(vaultPath, 'Locations', 'The Silver Tower.md'),
+      join(
+        vaultPath,
+        'Locations',
+        'The Silver Tower',
+        'The Silver Tower.md'
+      ),
       'utf8'
     )
     expect(silverTower).toContain('> [!abstract] At a Glance')
@@ -648,7 +653,71 @@ describe('generateVault', () => {
       )
     ).toBe(true)
     expect(
+      await pathExists(
+        join(
+          vaultPath,
+          'Locations',
+          'The Silver Tower',
+          'The Silver Tower.md'
+        )
+      )
+    ).toBe(true)
+  })
+
+  it('writes a parent location inside its own same-named folder, not as a sibling', async () => {
+    await generateVault(extraction, project, vaultPath, {
+      novelTitle: 'Mini Test Novel'
+    })
+    expect(
+      await pathExists(
+        join(
+          vaultPath,
+          'Locations',
+          'The Silver Tower',
+          'The Silver Tower.md'
+        )
+      )
+    ).toBe(true)
+    expect(
       await pathExists(join(vaultPath, 'Locations', 'The Silver Tower.md'))
+    ).toBe(false)
+  })
+
+  it('leaves a leaf location at the Locations root', async () => {
+    await generateVault(extraction, project, vaultPath, {
+      novelTitle: 'Mini Test Novel'
+    })
+    expect(
+      await pathExists(join(vaultPath, 'Locations', 'The Academy.md'))
+    ).toBe(true)
+    expect(
+      await pathExists(
+        join(vaultPath, 'Locations', 'The Academy', 'The Academy.md')
+      )
+    ).toBe(false)
+  })
+
+  it('removes a pre-5.4.2 sibling parent-location file during the generator sweep', async () => {
+    await mkdir(join(vaultPath, 'Locations'), { recursive: true })
+    const staleSiblingPath = join(
+      vaultPath,
+      'Locations',
+      'The Silver Tower.md'
+    )
+    await writeFile(staleSiblingPath, '# Stale parent page\n', 'utf8')
+    await generateVault(extraction, project, vaultPath, {
+      novelTitle: 'Mini Test Novel'
+    })
+    expect(await pathExists(staleSiblingPath)).toBe(false)
+    expect(
+      await pathExists(
+        join(
+          vaultPath,
+          'Locations',
+          'The Silver Tower',
+          'The Silver Tower.md'
+        )
+      )
     ).toBe(true)
   })
 
@@ -657,7 +726,12 @@ describe('generateVault', () => {
       novelTitle: 'Mini Test Novel'
     })
     const silverTower = await readFile(
-      join(vaultPath, 'Locations', 'The Silver Tower.md'),
+      join(
+        vaultPath,
+        'Locations',
+        'The Silver Tower',
+        'The Silver Tower.md'
+      ),
       'utf8'
     )
     expect(silverTower).toContain('> [!info] Sub-locations')

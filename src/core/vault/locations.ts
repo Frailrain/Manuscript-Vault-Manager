@@ -1,4 +1,4 @@
-import { mkdir } from 'node:fs/promises'
+import { mkdir, rm, stat } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 
 import type { GenreFieldDef } from '../../shared/presets'
@@ -180,6 +180,19 @@ export function allocateLocationFilenames(
     children.set(parent, list)
   }
 
+  // Folder-note promotion: a location with at least one child moves into its
+  // own same-named folder so Obsidian (with the Folder Notes plugin) renders
+  // the folder as a landing page instead of showing a duplicate sibling file.
+  for (const loc of locations) {
+    const childNames = children.get(loc.name)
+    if (!childNames || childNames.length === 0) continue
+    const currentPath = filenames.get(loc.name)
+    if (!currentPath) continue
+    const segments = currentPath.split('/')
+    const basename = segments[segments.length - 1]!
+    filenames.set(loc.name, `${currentPath}/${basename}`)
+  }
+
   return { filenames, children, warnings }
 }
 
@@ -188,6 +201,7 @@ export async function writeLocations(
   ctx: LocationWriteContext
 ): Promise<LocationWriteStats> {
   const stats: LocationWriteStats = { filesWritten: 0, filesPreserved: 0 }
+  await cleanupStaleParentLocationFiles(extraction, ctx)
   const total = extraction.locations.length
   for (let i = 0; i < extraction.locations.length; i++) {
     const location = extraction.locations[i]!
@@ -211,6 +225,49 @@ export async function writeLocations(
     if (outcome.preserved) stats.filesPreserved += 1
   }
   return stats
+}
+
+/**
+ * Pre-#5.4.2 vaults wrote a parent location's page as a sibling to its folder
+ * (`Locations/{ancestor}/{name}.md`). Since the parent now lives inside its
+ * own folder (`Locations/{ancestor}/{name}/{name}.md`), the old sibling file
+ * would linger as a duplicate. Remove it. Any Writer's Notes in that old
+ * file are lost — consistent with the pre-launch breakable-notes policy.
+ */
+async function cleanupStaleParentLocationFiles(
+  extraction: ExtractionResult,
+  ctx: LocationWriteContext
+): Promise<void> {
+  for (const loc of extraction.locations) {
+    const childNames = ctx.locationChildren.get(loc.name)
+    if (!childNames || childNames.length === 0) continue
+    const currentPath = ctx.locationFilenames.get(loc.name)
+    if (!currentPath) continue
+    const segments = currentPath.split('/')
+    if (segments.length < 2) continue
+    const oldSiblingRel = segments.slice(0, -1).join('/')
+    const oldSiblingPath = join(ctx.locationsDir, `${oldSiblingRel}.md`)
+    try {
+      await stat(oldSiblingPath)
+    } catch (err) {
+      const code = (err as NodeJS.ErrnoException).code
+      if (code === 'ENOENT') continue
+      ctx.warnings.push(
+        `Failed to stat stale parent location file '${oldSiblingPath}': ${(err as Error).message}`
+      )
+      continue
+    }
+    try {
+      await rm(oldSiblingPath, { force: true })
+      ctx.warnings.push(
+        `Removed stale parent location file '${oldSiblingRel}.md'; any Writer's Notes inside were lost.`
+      )
+    } catch (err) {
+      ctx.warnings.push(
+        `Failed to remove stale parent location file '${oldSiblingPath}': ${(err as Error).message}`
+      )
+    }
+  }
 }
 
 function buildLocationFile(

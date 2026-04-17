@@ -89,8 +89,9 @@ describe('allocateLocationFilenames', () => {
       buildLoc('Defensive Line', "Ganston's Crossing"),
       buildLoc('East Gate', 'Defensive Line')
     ])
+    // Defensive Line has a child (East Gate), so it's promoted into its own folder.
     expect(result.filenames.get('Defensive Line')).toBe(
-      "Ganston's Crossing/Defensive Line"
+      "Ganston's Crossing/Defensive Line/Defensive Line"
     )
     expect(result.filenames.get('East Gate')).toBe(
       "Ganston's Crossing/Defensive Line/East Gate"
@@ -135,5 +136,52 @@ describe('allocateLocationFilenames', () => {
   it('returns empty children map entry for a leaf location', () => {
     const result = allocateLocationFilenames([buildLoc('The Forest')])
     expect(result.children.has('The Forest')).toBe(false)
+  })
+
+  it('promotes a parent with one child into its own same-named folder', () => {
+    const result = allocateLocationFilenames([
+      buildLoc('Parent'),
+      buildLoc('Child', 'Parent')
+    ])
+    expect(result.filenames.get('Parent')).toBe('Parent/Parent')
+    expect(result.filenames.get('Child')).toBe('Parent/Child')
+  })
+
+  it('promotes a parent with multiple children and keeps siblings flat inside', () => {
+    const result = allocateLocationFilenames([
+      buildLoc('Kingdom'),
+      buildLoc('Province A', 'Kingdom'),
+      buildLoc('Province B', 'Kingdom'),
+      buildLoc('Province C', 'Kingdom')
+    ])
+    expect(result.filenames.get('Kingdom')).toBe('Kingdom/Kingdom')
+    expect(result.filenames.get('Province A')).toBe('Kingdom/Province A')
+    expect(result.filenames.get('Province B')).toBe('Kingdom/Province B')
+    expect(result.filenames.get('Province C')).toBe('Kingdom/Province C')
+  })
+
+  it('leaves a leaf location flat at its allocated path', () => {
+    const result = allocateLocationFilenames([buildLoc('Lonely Peak')])
+    expect(result.filenames.get('Lonely Peak')).toBe('Lonely Peak')
+  })
+
+  it('handles a three-level hierarchy where A and B are parents, C is a leaf', () => {
+    const result = allocateLocationFilenames([
+      buildLoc('A'),
+      buildLoc('B', 'A'),
+      buildLoc('C', 'B')
+    ])
+    expect(result.filenames.get('A')).toBe('A/A')
+    expect(result.filenames.get('B')).toBe('A/B/B')
+    expect(result.filenames.get('C')).toBe('A/B/C')
+  })
+
+  it('promotes a top-level parent (null parentLocation) into its own folder', () => {
+    const result = allocateLocationFilenames([
+      buildLoc('Realm'),
+      buildLoc('Outpost', 'Realm')
+    ])
+    expect(result.filenames.get('Realm')).toBe('Realm/Realm')
+    expect(result.filenames.get('Realm')).not.toBe('Realm')
   })
 })
