@@ -4,6 +4,9 @@ import type {
   ExtractionProgress,
   ExtractionRunPayload,
   ExtractionResult,
+  SyncProgress,
+  SyncResult,
+  SyncRunPayload,
   VaultGenerateRunPayload,
   VaultGenerationResult,
   VaultProgress
@@ -38,7 +41,16 @@ const api = {
     }
   },
   sync: {
-    check: (payload: unknown) => ipcRenderer.invoke('sync:check', payload)
+    run: (payload: SyncRunPayload): Promise<SyncResult> =>
+      ipcRenderer.invoke('sync:run', payload) as Promise<SyncResult>,
+    onProgress: (cb: (progress: SyncProgress) => void) => {
+      const listener = (_event: IpcRendererEvent, progress: SyncProgress) =>
+        cb(progress)
+      ipcRenderer.on('sync:progress', listener)
+      return () => {
+        ipcRenderer.off('sync:progress', listener)
+      }
+    }
   },
   settings: {
     get: (key: string) => ipcRenderer.invoke('settings:get', key),

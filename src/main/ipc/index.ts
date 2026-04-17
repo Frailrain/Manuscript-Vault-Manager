@@ -2,19 +2,18 @@ import { ipcMain } from 'electron'
 
 import { runExtraction } from '../../core/extraction'
 import { parseScrivenerProject } from '../../core/scrivener'
+import { syncProject } from '../../core/sync'
 import { generateVault } from '../../core/vault'
 import type {
   ExtractionProgress,
   ExtractionRunPayload,
+  SyncProgress,
+  SyncRunPayload,
   VaultGenerateRunPayload,
   VaultProgress
 } from '../../shared/types'
 
-const STUB_CHANNELS = [
-  'sync:check',
-  'settings:get',
-  'settings:set'
-] as const
+const STUB_CHANNELS = ['settings:get', 'settings:set'] as const
 
 export function registerIpcHandlers(): void {
   ipcMain.handle('scrivener:parse', async (_event, projectPath: unknown) => {
@@ -57,6 +56,25 @@ export function registerIpcHandlers(): void {
       ...options,
       onProgress: (progress: VaultProgress) => {
         event.sender.send('vault:progress', progress)
+      }
+    })
+  })
+
+  ipcMain.handle('sync:run', async (event, payload: unknown) => {
+    if (!payload || typeof payload !== 'object') {
+      throw new Error('[sync:run] payload must be an object')
+    }
+    const { project, vaultPath, providerConfig, options } =
+      payload as Partial<SyncRunPayload>
+    if (!project || !vaultPath || !providerConfig || !options) {
+      throw new Error(
+        '[sync:run] payload must include { project, vaultPath, providerConfig, options }'
+      )
+    }
+    return syncProject(project, vaultPath, providerConfig, {
+      ...options,
+      onProgress: (progress: SyncProgress) => {
+        event.sender.send('sync:progress', progress)
       }
     })
   })

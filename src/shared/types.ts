@@ -203,6 +203,81 @@ export interface VaultGenerateRunPayload {
   options: VaultGeneratorOptions
 }
 
+export interface ManifestChapterEntry {
+  chapterUuid: string
+  chapterOrder: number
+  chapterTitle: string
+  /** SHA-256 of the concatenated scene (uuid, contentHash) pairs in order. */
+  chapterHash: string
+  sceneHashes: Array<{ uuid: string; hash: string }>
+}
+
+export interface SyncManifest {
+  version: 1
+  lastSyncAt: string
+  projectName: string
+  chapters: ManifestChapterEntry[]
+  chapterContributions: ChapterContribution[]
+  cumulativeTokenUsage: TokenUsage
+  lastExtractionSnapshot: {
+    chapters: ChapterExtraction[]
+    warnings: string[]
+  }
+}
+
+export type ChapterChangeKind = 'new' | 'modified' | 'removed' | 'reordered'
+
+export interface ChapterChange {
+  kind: ChapterChangeKind
+  chapterUuid: string
+  newOrder: number | null
+  oldOrder: number | null
+  title: string
+}
+
+export interface SyncOptions {
+  novelTitle: string
+  /** If true, don't call the LLM or write to disk. Just report what would happen. */
+  dryRun?: boolean
+  onProgress?: (progress: SyncProgress) => void
+}
+
+export type SyncPhase =
+  | 'reading-manifest'
+  | 'diffing'
+  | 'extracting'
+  | 'merging'
+  | 'regenerating-vault'
+  | 'writing-manifest'
+  | 'done'
+
+export interface SyncProgress {
+  phase: SyncPhase
+  currentChapter?: number
+  totalChangedChapters?: number
+  currentPass?: ExtractionPass | null
+  tokensUsedSoFar: number
+  estimatedCostSoFar: number
+}
+
+export interface SyncResult {
+  firstRun: boolean
+  changes: ChapterChange[]
+  extractedChapters: number
+  filesWritten: number
+  filesPreserved: number
+  tokenUsage: TokenUsage
+  durationMs: number
+  warnings: string[]
+}
+
+export interface SyncRunPayload {
+  project: ScrivenerProject
+  vaultPath: string
+  providerConfig: LLMProviderConfig
+  options: SyncOptions
+}
+
 declare global {
   interface Window {
     mvm: {
@@ -215,7 +290,10 @@ declare global {
         generate: (payload: VaultGenerateRunPayload) => Promise<VaultGenerationResult>
         onProgress: (cb: (progress: VaultProgress) => void) => () => void
       }
-      sync: { check: (payload: unknown) => Promise<unknown> }
+      sync: {
+        run: (payload: SyncRunPayload) => Promise<SyncResult>
+        onProgress: (cb: (progress: SyncProgress) => void) => () => void
+      }
       settings: {
         get: (key: string) => Promise<unknown>
         set: (key: string, value: unknown) => Promise<unknown>

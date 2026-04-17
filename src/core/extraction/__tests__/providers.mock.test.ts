@@ -2,12 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import { ExtractionError } from '../errors'
 import { runExtractionWithProvider } from '../engine'
-import {
-  LLMProviderError,
-  type JSONSchema,
-  type LLMProvider,
-  type ProviderCallResult
-} from '../providers'
+import { LLMProviderError } from '../providers'
 import type {
   ExtractionProgress,
   ScrivenerChapter,
@@ -15,96 +10,14 @@ import type {
 } from '../../../shared/types'
 import { CHAPTER_TOKEN_SOFT_LIMIT } from '../chunking'
 import { makeMiniProject } from './fixtures/mini-project'
-
-type MockOutcome = ProviderCallResult<unknown> | Error
-
-const OK_CHARACTERS = {
-  characters: [
-    {
-      name: 'Elara',
-      aliases: [],
-      description: 'A young mage.',
-      role: 'protagonist',
-      relationships: [],
-      isNew: true
-    }
-  ]
-}
-
-const OK_LOCATIONS = {
-  locations: [
-    {
-      name: 'Silver Tower',
-      description: 'A tall spire.',
-      significance: 'Home of the scholars.',
-      isNew: true
-    }
-  ]
-}
-
-const OK_TIMELINE = {
-  summary: 'Elara explores the Silver Tower and meets the scholar.',
-  events: [
-    { summary: 'Elara enters the tower', sequence: 1 },
-    { summary: 'Elara meets the scholar', sequence: 2 }
-  ],
-  charactersAppearing: ['Elara'],
-  locationsAppearing: ['Silver Tower']
-}
-
-const OK_CONTINUITY = { issues: [] }
-
-const usage = { inputTokens: 100, outputTokens: 50 }
-
-class MockProvider implements LLMProvider {
-  readonly kind = 'anthropic' as const
-  readonly model = 'claude-haiku-4-5'
-  readonly calls: Array<{
-    toolName: string
-    systemPrompt: string
-    userPrompt: string
-    toolInputSchema: JSONSchema
-  }> = []
-
-  respond: (toolName: string, callIndex: number) => MockOutcome =
-    defaultRespond
-
-  async callWithSchema<T>(params: {
-    systemPrompt: string
-    userPrompt: string
-    toolName: string
-    toolDescription: string
-    toolInputSchema: JSONSchema
-  }): Promise<ProviderCallResult<T>> {
-    const callIndex = this.calls.filter(
-      (c) => c.toolName === params.toolName
-    ).length
-    this.calls.push({
-      toolName: params.toolName,
-      systemPrompt: params.systemPrompt,
-      userPrompt: params.userPrompt,
-      toolInputSchema: params.toolInputSchema
-    })
-    const outcome = this.respond(params.toolName, callIndex)
-    if (outcome instanceof Error) throw outcome
-    return outcome as ProviderCallResult<T>
-  }
-}
-
-function defaultRespond(toolName: string): MockOutcome {
-  switch (toolName) {
-    case 'record_characters':
-      return { data: OK_CHARACTERS, usage }
-    case 'record_locations':
-      return { data: OK_LOCATIONS, usage }
-    case 'record_timeline':
-      return { data: OK_TIMELINE, usage }
-    case 'record_continuity_issues':
-      return { data: OK_CONTINUITY, usage }
-    default:
-      return new LLMProviderError(`No mock for ${toolName}`, 'other')
-  }
-}
+import {
+  defaultRespond,
+  MockProvider,
+  OK_CHARACTERS,
+  OK_CONTINUITY,
+  OK_LOCATIONS,
+  OK_TIMELINE
+} from './mockProvider'
 
 describe('runExtractionWithProvider', () => {
   it('runs all four passes per chapter on a 2-chapter fixture and produces the expected shape', async () => {
@@ -120,7 +33,6 @@ describe('runExtractionWithProvider', () => {
     expect(toolCallCount('record_timeline')).toBe(2)
     expect(toolCallCount('record_continuity_issues')).toBe(2)
 
-    // 8 calls total × 100 input + 50 output
     expect(result.tokenUsage.inputTokens).toBe(800)
     expect(result.tokenUsage.outputTokens).toBe(400)
     expect(result.tokenUsage.estimatedCostUSD).toBeGreaterThan(0)
@@ -156,12 +68,9 @@ describe('runExtractionWithProvider', () => {
     const ch2 = result.chapters[1]!
     expect(ch2.passErrors).toBeUndefined()
 
-    // Characters/timeline/continuity still ran for chapter 1, so we still see
-    // Elara and timeline events from both chapters.
     expect(result.characters.map((c) => c.name)).toContain('Elara')
     expect(result.timeline).toHaveLength(4)
 
-    // Only chapter 2 contributed to locations.
     expect(result.locations).toHaveLength(1)
     expect(result.locations[0]!.appearances).toEqual([2])
 
@@ -265,7 +174,6 @@ describe('runExtractionWithProvider', () => {
   it('skips the chapterContribution entry when every pass fails for a chapter', async () => {
     const project = makeMiniProject()
     const mock = new MockProvider()
-    // callIndex===0 is chapter 1's call for each tool; fail all of them.
     mock.respond = (toolName, callIndex) => {
       if (callIndex === 0) {
         return new LLMProviderError(`forced ${toolName}`, 'parse')
@@ -320,7 +228,6 @@ describe('runExtractionWithProvider', () => {
       chapters: [bigChapter]
     }
     const mock = new MockProvider()
-    // Every scene returns the same Elara record; dedupe should collapse it.
     const result = await runExtractionWithProvider(project, mock)
 
     expect(result.chapterContributions).toHaveLength(1)
@@ -328,7 +235,6 @@ describe('runExtractionWithProvider', () => {
     expect(contrib.characterDeltas).toHaveLength(1)
     expect(contrib.characterDeltas[0]!.name).toBe('Elara')
     expect(contrib.locationDeltas).toHaveLength(1)
-    // Timeline events accumulate across scenes (not deduped).
     expect(contrib.timelineEvents.length).toBeGreaterThan(
       OK_TIMELINE.events.length
     )
