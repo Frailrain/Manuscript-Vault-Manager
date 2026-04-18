@@ -65,7 +65,9 @@ function sampleManifest(): SyncManifest {
 
 describe('manifest', () => {
   it('manifestPath joins to _meta/manifest.json', () => {
-    expect(manifestPath('/some/vault')).toBe('/some/vault/_meta/manifest.json')
+    expect(manifestPath('/some/vault')).toBe(
+      join('/some/vault', '_meta', 'manifest.json')
+    )
   })
 
   it('readManifest returns null when the file does not exist', async () => {
