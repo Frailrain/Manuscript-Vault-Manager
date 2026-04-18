@@ -978,4 +978,79 @@ describe('generateVault', () => {
     )
     expect(stable).toContain('user-tier: "main"')
   })
+
+  it('escapes angle-bracket LitRPG-style titles in chapter event callouts', async () => {
+    const withEscape: ExtractionResult = {
+      ...extraction,
+      timeline: [
+        ...extraction.timeline,
+        {
+          chapterOrder: 3,
+          summary: 'Activates the <System Command> interface.',
+          sequence: 3
+        }
+      ]
+    }
+    await generateVault(withEscape, project, vaultPath, {
+      novelTitle: 'Mini Test Novel'
+    })
+    const ch3 = await readFile(
+      join(vaultPath, 'Chapters', '03 - The Silver Tower.md'),
+      'utf8'
+    )
+    expect(ch3).toContain('> - Activates the \\<System Command\\> interface.')
+    expect(ch3).not.toContain('<System Command>')
+  })
+
+  it('escapes single square brackets in character description text', async () => {
+    const withBrackets: ExtractionResult = {
+      ...extraction,
+      characters: extraction.characters.map((c) =>
+        c.name === 'Elara'
+          ? {
+              ...c,
+              description:
+                'Learns the [Basic Command] skill in her first week.'
+            }
+          : c
+      )
+    }
+    await generateVault(withBrackets, project, vaultPath, {
+      novelTitle: 'Mini Test Novel'
+    })
+    const elara = await readFile(
+      join(vaultPath, 'Characters', '1 - Main', 'Elara.md'),
+      'utf8'
+    )
+    expect(elara).toContain('\\[Basic Command\\]')
+    expect(elara).not.toMatch(/[^\\]\[Basic Command\]/)
+  })
+
+  it('keeps subsequent callouts intact when a prior line has escape-trigger content', async () => {
+    const withEscape: ExtractionResult = {
+      ...extraction,
+      timeline: [
+        ...extraction.timeline,
+        {
+          chapterOrder: 3,
+          summary: 'Opens the <Inventory> and inspects [Rune Shard].',
+          sequence: 3
+        }
+      ]
+    }
+    await generateVault(withEscape, project, vaultPath, {
+      novelTitle: 'Mini Test Novel'
+    })
+    const ch3 = await readFile(
+      join(vaultPath, 'Chapters', '03 - The Silver Tower.md'),
+      'utf8'
+    )
+    expect(ch3).toContain(
+      '> - Opens the \\<Inventory\\> and inspects \\[Rune Shard\\].'
+    )
+    expect(ch3).toContain(
+      '> [!info] Characters\n> [[Elara]] · [[The Archivist]]'
+    )
+    expect(ch3).toContain('> [!info] Locations\n> [[The Silver Tower]]')
+  })
 })

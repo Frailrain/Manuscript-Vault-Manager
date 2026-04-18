@@ -14,7 +14,7 @@ import {
 } from './descriptions'
 import { basenameOf, sanitizeFilename } from './filenames'
 import { buildFrontmatter } from './frontmatter'
-import { stripHeadingMarkers } from './sanitize'
+import { sanitizeLLMText } from './sanitize'
 import {
   applyCustomFieldsToFrontmatter,
   renderTrackingCallout
@@ -353,7 +353,7 @@ function renderAtAGlance(location: ExtractedLocation): string {
   )
   const significance = location.significance.trim()
   if (significance.length > 0) {
-    bodyLines.push(`**Significance:** ${stripHeadingMarkers(significance)}`)
+    bodyLines.push(`**Significance:** ${sanitizeLLMText(significance)}`)
   }
   return renderCallout({
     type: 'abstract',
@@ -369,7 +369,7 @@ function renderDescriptionSection(rawDescription: string): string {
   }
 
   const blocks = parseChapterTaggedDescription(trimmed)
-  const synthesized = stripHeadingMarkers(
+  const synthesized = sanitizeLLMText(
     synthesizeDescription(trimmed, '. It ')
   )
 
@@ -379,7 +379,7 @@ function renderDescriptionSection(rawDescription: string): string {
 
   const perChapterBody = blocks
     .map(
-      (b) => `**Chapter ${b.chapterOrder}:** ${stripHeadingMarkers(b.text)}`
+      (b) => `**Chapter ${b.chapterOrder}:** ${sanitizeLLMText(b.text)}`
     )
     .join('\n')
   const perChapterCallout = renderCallout({

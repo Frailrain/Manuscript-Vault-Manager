@@ -8,7 +8,7 @@ import type {
 } from '../../shared/types'
 import { renderCallout } from './callouts'
 import { buildFrontmatter } from './frontmatter'
-import { stripHeadingMarkers } from './sanitize'
+import { sanitizeLLMText } from './sanitize'
 import { writeManagedFile } from './writeManaged'
 import { renderEntityLink, type NameResolver } from './wikilinks'
 
@@ -84,7 +84,7 @@ function buildChapterFile(
     scrivChapter?.synopsis ?? null
   )
 
-  const summaryBody = stripHeadingMarkers(
+  const summaryBody = sanitizeLLMText(
     chapter.summary || '*(not specified)*'
   )
 
@@ -97,7 +97,7 @@ function buildChapterFile(
           type: 'example',
           title: 'Events',
           body: events
-            .map((e) => `- ${stripHeadingMarkers(e.summary)}`)
+            .map((e) => `- ${sanitizeLLMText(e.summary)}`)
             .join('\n')
         })
       : null
@@ -165,7 +165,7 @@ function renderChapterCard(
   if (hasParent) bodyLines.push(`**Part:** ${parent!.trim()}`)
   if (hasSynopsis) {
     bodyLines.push(
-      `**Scrivener synopsis:** ${stripHeadingMarkers(synopsis!.trim())}`
+      `**Scrivener synopsis:** ${sanitizeLLMText(synopsis!.trim())}`
     )
   }
   return renderCallout({

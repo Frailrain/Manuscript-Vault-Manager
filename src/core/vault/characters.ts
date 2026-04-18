@@ -11,7 +11,7 @@ import { renderCallout } from './callouts'
 import { synthesizeDescription } from './descriptions'
 import { basenameOf } from './filenames'
 import { buildFrontmatter } from './frontmatter'
-import { stripHeadingMarkers } from './sanitize'
+import { sanitizeLLMText } from './sanitize'
 import {
   applyCustomFieldsToFrontmatter,
   renderTrackingCallout
@@ -134,7 +134,7 @@ function renderAtAGlance(character: ExtractedCharacter): string {
   const bodyLines: string[] = []
   const role = character.role.trim()
   if (role.length > 0) {
-    bodyLines.push(`**Role:** ${stripHeadingMarkers(role)}`)
+    bodyLines.push(`**Role:** ${sanitizeLLMText(role)}`)
   }
   bodyLines.push(`**First seen:** Chapter ${character.firstAppearanceChapter}`)
   const appearsCount = character.appearances.length
@@ -154,7 +154,7 @@ function renderDescriptionSection(character: ExtractedCharacter): string {
   const identityParagraph =
     trimmed.length === 0
       ? '*(not specified)*'
-      : stripHeadingMarkers(synthesizeDescription(trimmed))
+      : sanitizeLLMText(synthesizeDescription(trimmed))
 
   const activityCallout = renderPerChapterActivityCallout(character)
   if (!activityCallout) return identityParagraph
@@ -181,8 +181,8 @@ function renderPerChapterActivityCallout(
       .filter((s) => s.length > 0)
     const bullets =
       sentences.length > 0
-        ? sentences.map((s) => `- ${stripHeadingMarkers(s)}`).join('\n')
-        : `- ${stripHeadingMarkers(e.activity)}`
+        ? sentences.map((s) => `- ${sanitizeLLMText(s)}`).join('\n')
+        : `- ${sanitizeLLMText(e.activity)}`
     return `**Chapter ${e.order}:**\n${bullets}`
   })
 
@@ -217,7 +217,7 @@ function renderRelationshipLine(
   ctx: CharacterWriteContext,
   sourceName: string
 ): string {
-  const relationship = stripHeadingMarkers(rel.relationship)
+  const relationship = sanitizeLLMText(rel.relationship)
   const canonical = ctx.characterResolver.resolve(rel.name)
   let linkOrName: string
   if (canonical) {

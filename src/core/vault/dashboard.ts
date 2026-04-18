@@ -13,7 +13,7 @@ import { renderCallout } from './callouts'
 import { continuityIssueHeading, countBySeverity } from './continuity'
 import { basenameOf } from './filenames'
 import { buildFrontmatter } from './frontmatter'
-import { stripHeadingMarkers } from './sanitize'
+import { sanitizeLLMText } from './sanitize'
 
 const DASHBOARD_FILENAME = 'Dashboard.md'
 
@@ -262,13 +262,16 @@ function characterInlineSuffix(
 }
 
 function summaryPreview(summary: string): string {
-  const trimmed = stripHeadingMarkers(summary).trim()
+  const trimmed = summary.trim()
   if (trimmed.length === 0) return ''
   const dotIdx = trimmed.indexOf('.')
   const firstSentence =
     dotIdx > 0 ? trimmed.slice(0, dotIdx + 1).trim() : trimmed
-  if (firstSentence.length <= 120) return firstSentence
-  return firstSentence.slice(0, 120).trimEnd() + '…'
+  const sliced =
+    firstSentence.length <= 120
+      ? firstSentence
+      : firstSentence.slice(0, 120).trimEnd() + '…'
+  return sanitizeLLMText(sliced)
 }
 
 function pluralize(count: number, word: string): string {

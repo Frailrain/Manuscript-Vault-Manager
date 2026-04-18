@@ -9,7 +9,7 @@ import type {
 import { writeFileAtomic } from './atomic'
 import { renderCallout, type CalloutType } from './callouts'
 import { buildFrontmatter } from './frontmatter'
-import { stripHeadingMarkers } from './sanitize'
+import { sanitizeLLMText } from './sanitize'
 
 const CONTINUITY_FILENAME = 'Flagged Issues.md'
 
@@ -106,9 +106,9 @@ function buildContinuityFile(extraction: ExtractionResult): string {
       .sort((a, b) => (a.chapters[0] ?? 0) - (b.chapters[0] ?? 0))
     for (const issue of sorted) {
       const body = [
-        `**Description:** ${stripHeadingMarkers(issue.description)}`,
+        `**Description:** ${sanitizeLLMText(issue.description)}`,
         '',
-        `**Suggestion:** ${stripHeadingMarkers(issue.suggestion)}`
+        `**Suggestion:** ${sanitizeLLMText(issue.suggestion)}`
       ].join('\n')
       sections.push(
         renderCallout({

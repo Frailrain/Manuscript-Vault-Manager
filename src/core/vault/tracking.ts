@@ -1,7 +1,7 @@
 import type { GenreFieldDef } from '../../shared/presets'
 import type { CustomFieldValue } from '../../shared/types'
 import { renderCallout } from './callouts'
-import { stripHeadingMarkers } from './sanitize'
+import { sanitizeLLMText, stripHeadingMarkers } from './sanitize'
 
 const RESERVED_FRONTMATTER_KEYS = new Set([
   'type',
@@ -47,7 +47,7 @@ function renderFieldLines(
   if (def.type === 'list') {
     if (!Array.isArray(value) || value.length === 0) return null
     const items = value
-      .map((v) => (typeof v === 'string' ? stripHeadingMarkers(v) : ''))
+      .map((v) => (typeof v === 'string' ? sanitizeLLMText(v) : ''))
       .filter((v) => v.length > 0)
     if (items.length === 0) return null
     return [`**${label}:**`, ...items.map((item) => `- ${item}`)]
@@ -57,7 +57,7 @@ function renderFieldLines(
     return [`**${label}:** ${String(value)}`]
   }
   if (typeof value !== 'string' || value.trim().length === 0) return null
-  return [`**${label}:** ${stripHeadingMarkers(value.trim())}`]
+  return [`**${label}:** ${sanitizeLLMText(value.trim())}`]
 }
 
 /**
