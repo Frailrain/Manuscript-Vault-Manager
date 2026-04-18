@@ -9,7 +9,7 @@
   "scripts": {
     "dev": "cross-env ELECTRON_RUN_AS_NODE= electron-vite dev",
     "start": "cross-env ELECTRON_RUN_AS_NODE= electron-vite preview",
-    "build": "npm run typecheck && cross-env ELECTRON_RUN_AS_NODE= electron-vite build && electron-builder --win",
+    "build": "npm run typecheck && cross-env ELECTRON_RUN_AS_NODE= electron-vite build",
     "build:unpack": "npm run typecheck && cross-env ELECTRON_RUN_AS_NODE= electron-vite build && electron-builder --dir",
     "typecheck:node": "tsc --noEmit -p tsconfig.node.json",
     "typecheck:web": "tsc --noEmit -p tsconfig.json",
@@ -38,7 +38,7 @@
     "autoprefixer": "^10.4.20",
     "cross-env": "^10.1.0",
     "electron": "^33.0.0",
-    "electron-builder": "^25.0.5",
+    "electron-builder": "^26.8.1",
     "electron-vite": "^2.3.0",
     "jsdom": "^29.0.2",
     "postcss": "^8.4.47",
@@ -47,5 +47,63 @@
     "typescript": "^5.6.2",
     "vite": "^5.4.8",
     "vitest": "^4.1.4"
+  },
+  "build": {
+    "appId": "com.frailrain.manuscript-vault-manager",
+    "productName": "Manuscript Vault Manager",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "out/**/*",
+      "package.json"
+    ],
+    "publish": [
+      {
+        "provider": "github",
+        "releaseType": "release"
+      }
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64"]
+        }
+      ],
+      "artifactName": "${productName}-${version}-Setup.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "deleteAppDataOnUninstall": false,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Manuscript Vault Manager"
+    },
+    "mac": {
+      "target": [
+        {
+          "target": "dmg",
+          "arch": ["x64", "arm64"]
+        }
+      ],
+      "artifactName": "${productName}-${version}-${arch}.${ext}",
+      "category": "public.app-category.productivity"
+    },
+    "dmg": {
+      "writeUpdateInfo": false
+    },
+    "linux": {
+      "target": [
+        {
+          "target": "AppImage",
+          "arch": ["x64"]
+        }
+      ],
+      "artifactName": "${productName}-${version}.${ext}",
+      "category": "Office"
+    }
   }
 }

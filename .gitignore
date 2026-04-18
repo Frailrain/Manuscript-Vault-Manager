@@ -3,6 +3,7 @@ out/
 dist/
 build/
 release/
+*.blockmap
 *.log
 .DS_Store
 .vscode/
