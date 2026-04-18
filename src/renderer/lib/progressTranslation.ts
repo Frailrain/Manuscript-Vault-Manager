@@ -48,6 +48,9 @@ export function translateSyncProgress(p: SyncProgress): ProgressSnapshot {
     case 'diffing':
       label = 'Comparing against last sync...'
       break
+    case 'integrity-check':
+      label = 'Checking vault files...'
+      break
     case 'extracting':
       if (p.currentChapter && p.totalChangedChapters) {
         label = `Extracting Chapter ${p.currentChapter} of ${p.totalChangedChapters}`

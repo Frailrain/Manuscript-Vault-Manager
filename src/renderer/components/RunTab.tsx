@@ -170,7 +170,8 @@ export function RunTab(): JSX.Element {
         changes: syncResult.changes,
         extractedChapters: syncResult.extractedChapters,
         tokenUsage: syncResult.tokenUsage,
-        vaultPath: settings.vaultPath
+        vaultPath: settings.vaultPath,
+        regeneratedFiles: syncResult.regeneratedFiles
       })
       setHasManifest(true)
       const summary = await window.mvm.vault.readManifestSummary(
@@ -388,12 +389,18 @@ function CompletedSync({
 }: {
   result: Extract<RunResult, { kind: 'sync' }>
 }): JSX.Element {
+  const regen = result.regeneratedFiles ?? 0
   return (
     <div className="space-y-1 text-sm text-neutral-900 dark:text-neutral-100">
       <p>Synced {result.extractedChapters} chapters</p>
       <p className="text-neutral-600 dark:text-neutral-400">
         {describeChanges(result.changes)}
       </p>
+      {regen > 0 ? (
+        <p className="text-neutral-600 dark:text-neutral-400">
+          {regen} missing file{regen === 1 ? '' : 's'} regenerated
+        </p>
+      ) : null}
       <p className="pt-2 text-neutral-600 dark:text-neutral-400">
         Tokens: {result.tokenUsage.inputTokens.toLocaleString()} in /{' '}
         {result.tokenUsage.outputTokens.toLocaleString()} out

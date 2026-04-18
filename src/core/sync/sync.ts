@@ -21,6 +21,10 @@ import { generateVault } from '../vault/generator'
 import { diffProject } from './diff'
 import { SyncError } from './errors'
 import { hashChapter } from './hashing'
+import {
+  checkVaultIntegrity,
+  type IntegrityCheckResult
+} from './integrity'
 import { readManifest, writeManifest } from './manifest'
 import { rebuildMergedState } from './rebuild'
 import { reExtractChapters } from './reExtract'
@@ -79,10 +83,54 @@ export async function syncProject(
   const reorderedCount = changes.filter((c) => c.kind === 'reordered').length
   const removedCount = changes.filter((c) => c.kind === 'removed').length
 
+  // Build the priorState for re-extraction: drop contributions for chapters
+  // about to be re-extracted (stale) AND any that are no longer in the project.
+  const currentUuids = new Set(project.chapters.map((ch) => ch.uuid))
+  const priorContributions = (manifest?.chapterContributions ?? []).filter(
+    (c) => !changedUuids.has(c.chapterUuid) && currentUuids.has(c.chapterUuid)
+  )
+  const priorChapterExtractions = (
+    manifest?.lastExtractionSnapshot.chapters ?? []
+  ).filter((c) => !changedUuids.has(c.chapterUuid) && currentUuids.has(c.chapterUuid))
+
+  const priorRebuild = rebuildMergedState(
+    priorContributions,
+    priorChapterExtractions,
+    project.chapters,
+    fieldDefs
+  )
+
+  let integrity: IntegrityCheckResult = {
+    hasMissingFiles: false,
+    missingFiles: [],
+    missingCount: 0
+  }
+  if (!firstRun && manifest) {
+    emit('integrity-check')
+    integrity = await checkVaultIntegrity(vaultPath, {
+      chapters: manifest.chapters,
+      characters: priorRebuild.characters,
+      locations: priorRebuild.locations,
+      hasTimeline: priorRebuild.timeline.length > 0,
+      hasContinuity: priorRebuild.continuityIssues.length > 0
+    })
+    if (integrity.hasMissingFiles) {
+      const sample = integrity.missingFiles.slice(0, 3).join(', ')
+      const more =
+        integrity.missingCount > integrity.missingFiles.length
+          ? ` (+${integrity.missingCount - integrity.missingFiles.length} more)`
+          : ''
+      warnings.push(
+        `${integrity.missingCount} vault file(s) missing from disk; regenerating from manifest. First: ${sample}${more}`
+      )
+    }
+  }
+
   if (
     changedUuids.size === 0 &&
     reorderedCount === 0 &&
-    removedCount === 0
+    removedCount === 0 &&
+    !integrity.hasMissingFiles
   ) {
     emit('done')
     return {
@@ -107,29 +155,14 @@ export async function syncProject(
       filesPreserved: 0,
       tokenUsage,
       durationMs: Date.now() - startTime,
-      warnings
+      warnings,
+      regeneratedFiles:
+        integrity.missingCount > 0 ? integrity.missingCount : undefined
     }
   }
 
   const chaptersToReExtract = project.chapters.filter((ch) =>
     changedUuids.has(ch.uuid)
-  )
-
-  // Build the priorState for re-extraction: drop contributions for chapters
-  // about to be re-extracted (stale) AND any that are no longer in the project.
-  const currentUuids = new Set(project.chapters.map((ch) => ch.uuid))
-  const priorContributions = (manifest?.chapterContributions ?? []).filter(
-    (c) => !changedUuids.has(c.chapterUuid) && currentUuids.has(c.chapterUuid)
-  )
-  const priorChapterExtractions = (
-    manifest?.lastExtractionSnapshot.chapters ?? []
-  ).filter((c) => !changedUuids.has(c.chapterUuid) && currentUuids.has(c.chapterUuid))
-
-  const priorRebuild = rebuildMergedState(
-    priorContributions,
-    priorChapterExtractions,
-    project.chapters,
-    fieldDefs
   )
 
   let newContributions: ChapterContribution[] = []
@@ -289,7 +322,9 @@ export async function syncProject(
     filesPreserved,
     tokenUsage,
     durationMs: Date.now() - startTime,
-    warnings
+    warnings,
+    regeneratedFiles:
+      integrity.missingCount > 0 ? integrity.missingCount : undefined
   }
 }
 

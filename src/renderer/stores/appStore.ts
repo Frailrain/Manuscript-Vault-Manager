@@ -54,6 +54,7 @@ export type RunResult =
       extractedChapters: number
       tokenUsage: TokenUsage
       vaultPath: string
+      regeneratedFiles?: number
     }
 
 export interface AppState {

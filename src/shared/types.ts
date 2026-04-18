@@ -293,6 +293,7 @@ export interface SyncOptions {
 export type SyncPhase =
   | 'reading-manifest'
   | 'diffing'
+  | 'integrity-check'
   | 'extracting'
   | 'merging'
   | 'regenerating-vault'
@@ -317,6 +318,8 @@ export interface SyncResult {
   tokenUsage: TokenUsage
   durationMs: number
   warnings: string[]
+  /** Missing vault files restored by the integrity-driven regeneration. */
+  regeneratedFiles?: number
 }
 
 export interface SyncRunPayload {

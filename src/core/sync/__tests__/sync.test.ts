@@ -1,5 +1,5 @@
 import { readFile, writeFile } from 'node:fs/promises'
-import { mkdtempSync, rmSync } from 'node:fs'
+import { existsSync, mkdtempSync, rmSync, unlinkSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import {
@@ -234,5 +234,81 @@ describe('syncProject', () => {
 
     const after = await readFile(ch2Path, 'utf8')
     expect(after).toContain('My important note about this chapter.')
+  })
+
+  it('no-change sync with all files present: regeneratedFiles is undefined', async () => {
+    await run(buildProjectV1())
+    mock.calls.length = 0
+
+    const result = await run(buildProjectV1())
+    expect(result.extractedChapters).toBe(0)
+    expect(result.filesWritten).toBe(0)
+    expect(result.regeneratedFiles).toBeUndefined()
+  })
+
+  it('no-change sync with a deleted chapter file: regenerates without LLM calls', async () => {
+    await run(buildProjectV1())
+    mock.calls.length = 0
+
+    const deletedPath = join(tempVault, 'Chapters', '02 - Chapter 2.md')
+    expect(existsSync(deletedPath)).toBe(true)
+    unlinkSync(deletedPath)
+
+    const result = await run(buildProjectV1())
+
+    expect(mock.calls).toHaveLength(0)
+    expect(result.extractedChapters).toBe(0)
+    expect(result.tokenUsage.inputTokens).toBe(0)
+    expect(result.regeneratedFiles).toBeGreaterThan(0)
+    expect(result.filesWritten).toBeGreaterThan(0)
+    expect(existsSync(deletedPath)).toBe(true)
+    expect(
+      result.warnings.some((w) =>
+        w.includes('vault file(s) missing from disk')
+      )
+    ).toBe(true)
+  })
+
+  it('changed Scrivener + deleted character file: re-extracts changes AND regenerates missing', async () => {
+    await run(buildProjectV1())
+    mock.calls.length = 0
+
+    const elaraPath = join(
+      tempVault,
+      'Characters',
+      '1 - Main',
+      'Elara.md'
+    )
+    expect(existsSync(elaraPath)).toBe(true)
+    unlinkSync(elaraPath)
+
+    const result = await run(buildProjectV2_ch2Modified())
+
+    expect(result.extractedChapters).toBe(1)
+    expect(mock.calls.length).toBeGreaterThan(0)
+    expect(result.regeneratedFiles).toBeGreaterThan(0)
+    expect(existsSync(elaraPath)).toBe(true)
+  })
+
+  it('first run (no manifest): skips integrity check', async () => {
+    const events: SyncProgress[] = []
+    await run(buildProjectV1(), { onProgress: (p) => events.push(p) })
+    const phases = events.map((e) => e.phase)
+    expect(phases).not.toContain('integrity-check')
+  })
+
+  it('dry-run with missing files: reports regeneratedFiles but writes nothing', async () => {
+    await run(buildProjectV1())
+    mock.calls.length = 0
+
+    const deletedPath = join(tempVault, 'Chapters', '02 - Chapter 2.md')
+    unlinkSync(deletedPath)
+
+    const result = await run(buildProjectV1(), { dryRun: true })
+
+    expect(mock.calls).toHaveLength(0)
+    expect(result.regeneratedFiles).toBeGreaterThan(0)
+    expect(result.filesWritten).toBe(0)
+    expect(existsSync(deletedPath)).toBe(false)
   })
 })
